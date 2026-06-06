@@ -107,6 +107,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .s-day{width:26px;height:26px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:10px;font-family:'DM Mono',monospace;color:var(--text-faint);background:var(--surface);border:0.5px solid var(--border)}
 .s-day.partial{background:var(--green-pale);border-color:var(--green-light);color:var(--green-dark)}
 .s-day.full{background:var(--green-mid);border-color:var(--green-mid);color:#fff}
+.s-day.future{background:none;border-style:dashed;color:var(--text-faint)}
 .s-day.today-mark{outline:2px solid var(--green-mid);outline-offset:1px}
 </style>
 </head>
@@ -149,7 +150,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   <div id="taskSections"></div>
 
   <div class="divider"></div>
-  <div class="streak-label">30天完成记录</div>
+  <div class="streak-label">日历概览</div>
   <div class="streak-row" id="streakRow"></div>
 </div>
 
@@ -220,14 +221,15 @@ function anyDone(d){
 function render(){
   const today=todayStr();
   document.getElementById('dateLabel').textContent=fmtDate(cur);
-  document.getElementById('nextDay').disabled=cur>=today;
+  
 
   const day=getDay(cur);
   const tasks=day.tasks||[];
   const hDone=FIXED_HABITS.filter(h=>day.habits&&day.habits[h.id]).length;
   const tDone=tasks.filter(t=>t.done).length;
   const tTotal=tasks.length;
-  const allItems=3+tTotal;
+  const isFuture = cur > today;
+  const allItems = isFuture ? tTotal : 3 + tTotal;
   const pct=allItems===0?0:Math.round((hDone+tDone)/allItems*100);
 
   document.getElementById('sHabits').textContent=hDone+'/3';
@@ -285,10 +287,11 @@ function renderStreak(){
   const row=document.getElementById('streakRow');
   row.innerHTML='';
   const today=todayStr();
-  for(let i=29;i>=0;i--){
+  for(let i=-14;i<=15;i++){
     const d=addDays(today,-i);
     let cls='s-day';
-    if(allDone(d)) cls+=' full';
+    if(d>today) cls+=' future';
+    else if(allDone(d)) cls+=' full';
     else if(anyDone(d)) cls+=' partial';
     if(d===today) cls+=' today-mark';
     const el=document.createElement('div');
@@ -343,7 +346,7 @@ function addTask(){
 }
 
 document.getElementById('prevDay').addEventListener('click',()=>{cur=addDays(cur,-1);render();});
-document.getElementById('nextDay').addEventListener('click',()=>{if(cur<todayStr()){cur=addDays(cur,1);render();}});
+document.getElementById('nextDay').addEventListener('click',()=>{cur=addDays(cur,1);render();});
 
 load();
 </script>
