@@ -109,6 +109,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .s-day.full{background:var(--green-mid);border-color:var(--green-mid);color:#fff}
 .s-day.future{background:none;border-style:dashed;color:var(--text-faint)}
 .s-day.today-mark{outline:2px solid var(--green-mid);outline-offset:1px}
+.s-day.selected{outline:2px solid var(--text-muted);outline-offset:1px}
 </style>
 </head>
 <body>
@@ -294,10 +295,13 @@ function renderStreak(){
     else if(allDone(d)) cls+=' full';
     else if(anyDone(d)) cls+=' partial';
     if(d===today) cls+=' today-mark';
+    if(d===cur) cls+=' selected';
     const el=document.createElement('div');
     el.className=cls;
     el.textContent=parseD(d).getDate();
     el.title=fmtDate(d);
+    el.style.cursor='pointer';
+    el.addEventListener('click',()=>{cur=d;render();});
     row.appendChild(el);
   }
 }
