@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>每日追踪器</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<style>
+:root {
+  --green-dark: #27500A;
+  --green-mid: #3B6D11;
+  --green-light: #C0DD97;
+  --green-pale: #EAF3DE;
+  --purple-dark: #3C3489;
+  --purple-pale: #EEEDFE;
+  --amber-dark: #633806;
+  --amber-pale: #FAEEDA;
+  --blue-dark: #0C447C;
+  --blue-pale: #E6F1FB;
+  --bg: #f8f7f4;
+  --surface: #ffffff;
+  --border: rgba(0,0,0,0.1);
+  --border-hover: rgba(0,0,0,0.2);
+  --text: #1a1a18;
+  --text-muted: #888780;
+  --text-faint: #b4b2a9;
+  --radius: 10px;
+  --radius-lg: 14px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1a1a18;
+    --surface: #242422;
+    --border: rgba(255,255,255,0.1);
+    --border-hover: rgba(255,255,255,0.2);
+    --text: #f1efe8;
+    --text-muted: #888780;
+    --text-faint: #5f5e5a;
+    --green-pale: #1a2e0a;
+    --green-light: #27500A;
+    --purple-pale: #1e1b40;
+    --amber-pale: #2a1e08;
+    --blue-pale: #051e38;
+  }
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:0}
+.page{max-width:640px;margin:0 auto;padding:2rem 1.25rem 4rem}
+.top-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:2rem}
+.date-nav{display:flex;align-items:center;gap:6px}
+.nav-btn{background:none;border:0.5px solid var(--border);border-radius:var(--radius);padding:7px 11px;cursor:pointer;color:var(--text);font-size:14px;line-height:1;transition:background 0.15s,border-color 0.15s}
+.nav-btn:hover{background:var(--surface);border-color:var(--border-hover)}
+.nav-btn:disabled{opacity:0.3;cursor:default}
+.date-label{font-size:15px;font-weight:500;min-width:110px;text-align:center;font-family:'DM Mono',monospace}
+.add-btn{display:flex;align-items:center;gap:5px;background:var(--green-mid);border:none;color:#fff;border-radius:var(--radius);padding:8px 14px;font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;transition:opacity 0.15s}
+.add-btn:hover{opacity:0.85}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:1.25rem}
+.stat{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--radius);padding:0.75rem 1rem}
+.stat-val{font-size:20px;font-weight:500;font-family:'DM Mono',monospace;color:var(--text)}
+.stat-lbl{font-size:11px;color:var(--text-muted);margin-top:3px}
+.prog-wrap{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--radius);padding:0.9rem 1rem;margin-bottom:1.25rem}
+.prog-top{display:flex;justify-content:space-between;font-size:12px;color:var(--text-muted);margin-bottom:8px}
+.prog-pct{font-family:'DM Mono',monospace;font-weight:500;color:var(--text)}
+.prog-track{height:6px;background:var(--border);border-radius:3px;overflow:hidden}
+.prog-fill{height:100%;border-radius:3px;background:var(--green-mid);transition:width 0.4s cubic-bezier(0.4,0,0.2,1)}
+.habits-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:1.25rem}
+.habit-card{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:1rem 0.75rem;text-align:center;cursor:pointer;transition:border-color 0.2s,background 0.2s;user-select:none}
+.habit-card:hover{border-color:var(--border-hover)}
+.habit-card.done{background:var(--green-pale);border-color:var(--green-light)}
+.habit-icon{font-size:22px;color:var(--text-muted);margin-bottom:6px;line-height:1}
+.habit-card.done .habit-icon{color:var(--green-mid)}
+.habit-name{font-size:13px;font-weight:500;color:var(--text);margin-bottom:2px}
+.habit-card.done .habit-name{color:var(--green-dark)}
+.habit-dur{font-size:11px;color:var(--text-muted);font-family:'DM Mono',monospace}
+.habit-card.done .habit-dur{color:var(--green-mid)}
+.section{margin-bottom:1rem}
+.sec-head{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.sec-title{font-size:11px;font-weight:500;color:var(--text-muted);letter-spacing:0.07em;text-transform:uppercase}
+.sec-count{font-size:11px;font-family:'DM Mono',monospace;color:var(--text-faint)}
+.task-list{display:flex;flex-direction:column;gap:5px}
+.task{display:flex;align-items:center;gap:10px;padding:10px 12px;border:0.5px solid var(--border);border-radius:var(--radius);background:var(--surface);transition:border-color 0.15s,background 0.15s;cursor:pointer}
+.task:hover{border-color:var(--border-hover)}
+.task.done{background:var(--bg)}
+.task.done .task-text{color:var(--text-muted);text-decoration:line-through;text-decoration-color:var(--text-faint)}
+.task-check{width:20px;height:20px;border:1.5px solid var(--border-hover);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.15s}
+.task.done .task-check{background:var(--green-mid);border-color:var(--green-mid)}
+.task-check i{font-size:11px;color:#fff;display:none}
+.task.done .task-check i{display:block}
+.task-text{flex:1;font-size:14px;color:var(--text)}
+.task-del{background:none;border:none;cursor:pointer;color:var(--text-faint);padding:3px;border-radius:4px;opacity:0;transition:opacity 0.15s;font-size:14px;line-height:1;flex-shrink:0}
+.task:hover .task-del{opacity:1}
+.task-del:hover{color:#E24B4A}
+.add-form{display:none;gap:8px;margin-bottom:1rem;flex-wrap:wrap;align-items:center}
+.add-form.open{display:flex}
+.add-form input{flex:1;min-width:180px;border:0.5px solid var(--border-hover);border-radius:var(--radius);padding:8px 12px;font-size:14px;background:var(--surface);color:var(--text);font-family:'DM Sans',sans-serif;outline:none}
+.add-form input:focus{border-color:var(--green-mid);box-shadow:0 0 0 3px rgba(59,109,17,0.1)}
+.add-form select{border:0.5px solid var(--border-hover);border-radius:var(--radius);padding:8px 10px;font-size:13px;background:var(--surface);color:var(--text);cursor:pointer;font-family:'DM Sans',sans-serif;outline:none}
+.btn-ok{background:var(--green-mid);border:none;color:#fff;border-radius:var(--radius);padding:8px 16px;font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:opacity 0.15s}
+.btn-ok:hover{opacity:0.85}
+.btn-no{background:none;border:0.5px solid var(--border-hover);border-radius:var(--radius);padding:8px 12px;font-size:13px;cursor:pointer;color:var(--text-muted);font-family:'DM Sans',sans-serif}
+.empty{text-align:center;padding:1.5rem;font-size:13px;color:var(--text-faint);border:0.5px dashed var(--border);border-radius:var(--radius)}
+.divider{height:0.5px;background:var(--border);margin:1.5rem 0}
+.streak-label{font-size:11px;font-weight:500;color:var(--text-muted);letter-spacing:0.07em;text-transform:uppercase;margin-bottom:8px}
+.streak-row{display:flex;gap:3px;flex-wrap:wrap}
+.s-day{width:26px;height:26px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:10px;font-family:'DM Mono',monospace;color:var(--text-faint);background:var(--surface);border:0.5px solid var(--border)}
+.s-day.partial{background:var(--green-pale);border-color:var(--green-light);color:var(--green-dark)}
+.s-day.full{background:var(--green-mid);border-color:var(--green-mid);color:#fff}
+.s-day.today-mark{outline:2px solid var(--green-mid);outline-offset:1px}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="top-bar">
+    <div class="date-nav">
+      <button class="nav-btn" id="prevDay"><i class="ti ti-chevron-left"></i></button>
+      <span class="date-label" id="dateLabel"></span>
+      <button class="nav-btn" id="nextDay"><i class="ti ti-chevron-right"></i></button>
+    </div>
+    <button class="add-btn" id="addTaskBtn"><i class="ti ti-plus"></i> 添加任务</button>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="stat-val" id="sHabits">0/3</div><div class="stat-lbl">每日习惯</div></div>
+    <div class="stat"><div class="stat-val" id="sDone">0</div><div class="stat-lbl">任务完成</div></div>
+    <div class="stat"><div class="stat-val" id="sTotal">0</div><div class="stat-lbl">任务总数</div></div>
+    <div class="stat"><div class="stat-val" id="sStreak">0</div><div class="stat-lbl">连续天数</div></div>
+  </div>
+
+  <div class="prog-wrap">
+    <div class="prog-top"><span id="progMsg">今日进度</span><span class="prog-pct" id="progPct">0%</span></div>
+    <div class="prog-track"><div class="prog-fill" id="progFill" style="width:0%"></div></div>
+  </div>
+
+  <div class="habits-grid" id="habitStrip"></div>
+
+  <div id="addForm" class="add-form">
+    <input type="text" id="newText" placeholder="任务名称…" maxlength="80" />
+    <select id="newCat">
+      <option value="work">工作</option>
+      <option value="life">生活</option>
+      <option value="health">健康</option>
+    </select>
+    <button class="btn-ok" id="confirmAdd">添加</button>
+    <button class="btn-no" id="cancelAdd">取消</button>
+  </div>
+
+  <div id="taskSections"></div>
+
+  <div class="divider"></div>
+  <div class="streak-label">30天完成记录</div>
+  <div class="streak-row" id="streakRow"></div>
+</div>
+
+<script>
+const KEY = 'daily-tracker-v2';
+const FIXED_HABITS = [
+  {id:'h-nl',  text:'荷兰语练习', dur:'30 分钟', icon:'ti-language'},
+  {id:'h-read',text:'阅读',       dur:'1 小时',  icon:'ti-book'},
+  {id:'h-ex',  text:'运动',       dur:'30 分钟', icon:'ti-run'},
+];
+const CAT_LABEL = {work:'工作',life:'生活',health:'健康'};
+
+let cur = todayStr();
+let data = {};
+
+function todayStr(){
+  const d=new Date();
+  return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+}
+function pad(n){return String(n).padStart(2,'0')}
+function parseD(s){const[y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d)}
+function addDays(s,n){const d=parseD(s);d.setDate(d.getDate()+n);return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())}
+function fmtDate(s){
+  const t=todayStr(),y=addDays(t,-1);
+  if(s===t) return '今天';
+  if(s===y) return '昨天';
+  const d=parseD(s);
+  return d.toLocaleDateString('zh-CN',{month:'numeric',day:'numeric',weekday:'short'});
+}
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+
+function load(){
+  try{const r=localStorage.getItem(KEY);if(r)data=JSON.parse(r);}catch(e){data={};}
+  render();
+}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(data));}catch(e){}}
+
+function getDay(d){if(!data[d])data[d]={habits:{},tasks:[]};return data[d];}
+
+function calcStreak(){
+  let s=0,d=todayStr();
+  for(let i=0;i<365;i++){
+    const day=data[d];
+    const hd=FIXED_HABITS.filter(h=>day&&day.habits&&day.habits[h.id]).length;
+    const tasks=day&&day.tasks?day.tasks:[];
+    const td=tasks.filter(t=>t.done).length;
+    if(hd===0&&td===0&&i>0) break;
+    if(hd>0||td>0) s++;
+    d=addDays(d,-1);
+  }
+  return s;
+}
+
+function allDone(d){
+  const day=data[d];
+  const hd=FIXED_HABITS.filter(h=>day&&day.habits&&day.habits[h.id]).length;
+  const tasks=day&&day.tasks?day.tasks:[];
+  const td=tasks.filter(t=>t.done).length;
+  return hd===3&&(tasks.length===0||td===tasks.length)&&(hd>0||tasks.length>0);
+}
+function anyDone(d){
+  const day=data[d];
+  const hd=FIXED_HABITS.filter(h=>day&&day.habits&&day.habits[h.id]).length;
+  const tasks=day&&day.tasks?day.tasks:[];
+  return hd>0||tasks.filter(t=>t.done).length>0;
+}
+
+function render(){
+  const today=todayStr();
+  document.getElementById('dateLabel').textContent=fmtDate(cur);
+  document.getElementById('nextDay').disabled=cur>=today;
+
+  const day=getDay(cur);
+  const tasks=day.tasks||[];
+  const hDone=FIXED_HABITS.filter(h=>day.habits&&day.habits[h.id]).length;
+  const tDone=tasks.filter(t=>t.done).length;
+  const tTotal=tasks.length;
+  const allItems=3+tTotal;
+  const pct=allItems===0?0:Math.round((hDone+tDone)/allItems*100);
+
+  document.getElementById('sHabits').textContent=hDone+'/3';
+  document.getElementById('sDone').textContent=tDone;
+  document.getElementById('sTotal').textContent=tTotal;
+  document.getElementById('sStreak').textContent=calcStreak();
+  document.getElementById('progFill').style.width=pct+'%';
+  document.getElementById('progPct').textContent=pct+'%';
+  const msgs=['加油，开始今天吧','继续保持！','过半了，不错！','快完成了！','全部完成！'];
+  document.getElementById('progMsg').textContent=msgs[pct===100?4:Math.floor(pct/26)];
+
+  const strip=document.getElementById('habitStrip');
+  strip.innerHTML='';
+  FIXED_HABITS.forEach(h=>{
+    const done=!!(day.habits&&day.habits[h.id]);
+    const card=document.createElement('div');
+    card.className='habit-card'+(done?' done':'');
+    card.innerHTML=`<div class="habit-icon"><i class="ti ${h.icon}"></i></div><div class="habit-name">${h.text}</div><div class="habit-dur">${h.dur}</div>`;
+    card.addEventListener('click',()=>toggleHabit(h.id));
+    strip.appendChild(card);
+  });
+
+  const sec=document.getElementById('taskSections');
+  sec.innerHTML='';
+  let anyTask=false;
+  ['work','life','health'].forEach(cat=>{
+    const ct=tasks.filter(t=>t.cat===cat);
+    if(!ct.length) return;
+    anyTask=true;
+    const div=document.createElement('div');
+    div.className='section';
+    div.innerHTML=`<div class="sec-head"><span class="sec-title">${CAT_LABEL[cat]}</span><span class="sec-count">${ct.filter(t=>t.done).length}/${ct.length}</span></div><div class="task-list" id="tl-${cat}"></div>`;
+    sec.appendChild(div);
+    const list=div.querySelector('.task-list');
+    ct.forEach(t=>{
+      const el=document.createElement('div');
+      el.className='task'+(t.done?' done':'');
+      el.innerHTML=`<div class="task-check"><i class="ti ti-check"></i></div><span class="task-text">${esc(t.text)}</span><button class="task-del" data-id="${t.id}" aria-label="删除"><i class="ti ti-x"></i></button>`;
+      el.querySelector('.task-check').addEventListener('click',()=>toggleTask(t.id));
+      list.appendChild(el);
+    });
+  });
+  if(!anyTask){
+    const empty=document.createElement('div');
+    empty.className='empty';
+    empty.textContent='还没有额外任务 — 点击右上角添加';
+    sec.appendChild(empty);
+  }
+  sec.querySelectorAll('.task-del').forEach(el=>el.addEventListener('click',e=>{e.stopPropagation();deleteTask(el.dataset.id);}));
+
+  renderStreak();
+}
+
+function renderStreak(){
+  const row=document.getElementById('streakRow');
+  row.innerHTML='';
+  const today=todayStr();
+  for(let i=29;i>=0;i--){
+    const d=addDays(today,-i);
+    let cls='s-day';
+    if(allDone(d)) cls+=' full';
+    else if(anyDone(d)) cls+=' partial';
+    if(d===today) cls+=' today-mark';
+    const el=document.createElement('div');
+    el.className=cls;
+    el.textContent=parseD(d).getDate();
+    el.title=fmtDate(d);
+    row.appendChild(el);
+  }
+}
+
+function toggleHabit(id){
+  const day=getDay(cur);
+  if(!day.habits) day.habits={};
+  day.habits[id]=!day.habits[id];
+  save();render();
+}
+function toggleTask(id){
+  const day=getDay(cur);
+  const t=day.tasks.find(t=>t.id===id);
+  if(t){t.done=!t.done;save();render();}
+}
+function deleteTask(id){
+  const day=getDay(cur);
+  day.tasks=day.tasks.filter(t=>t.id!==id);
+  save();render();
+}
+
+let formOpen=false;
+document.getElementById('addTaskBtn').addEventListener('click',()=>{
+  formOpen=!formOpen;
+  document.getElementById('addForm').classList.toggle('open',formOpen);
+  if(formOpen) document.getElementById('newText').focus();
+});
+document.getElementById('cancelAdd').addEventListener('click',()=>{
+  formOpen=false;
+  document.getElementById('addForm').classList.remove('open');
+  document.getElementById('newText').value='';
+});
+document.getElementById('confirmAdd').addEventListener('click',addTask);
+document.getElementById('newText').addEventListener('keydown',e=>{if(e.key==='Enter')addTask();});
+
+function addTask(){
+  const txt=document.getElementById('newText').value.trim();
+  if(!txt) return;
+  const cat=document.getElementById('newCat').value;
+  const day=getDay(cur);
+  day.tasks.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,5),text:txt,cat,done:false});
+  document.getElementById('newText').value='';
+  formOpen=false;
+  document.getElementById('addForm').classList.remove('open');
+  save();render();
+}
+
+document.getElementById('prevDay').addEventListener('click',()=>{cur=addDays(cur,-1);render();});
+document.getElementById('nextDay').addEventListener('click',()=>{if(cur<todayStr()){cur=addDays(cur,1);render();}});
+
+load();
+</script>
+</body>
+</html>
