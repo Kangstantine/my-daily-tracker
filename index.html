@@ -44,6 +44,31 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .view{display:none}.view.active{display:block}
 
 /* ════════════════════════════
+   MOBILE RESPONSIVE
+════════════════════════════ */
+@media(max-width:600px){
+  .app{padding:1rem 0.9rem 5rem}
+  .nav{margin-bottom:1.25rem}
+  .nav-title{font-size:18px}
+  .tab{padding:6px 10px;font-size:12px}
+  .big-stats{grid-template-columns:repeat(2,1fr)!important}
+  .analytics-body{grid-template-columns:1fr!important}
+  .day-layout{grid-template-columns:1fr!important}
+  .day-right{display:none!important}
+  .cal-dow-row{gap:3px}
+  .cal-cells{gap:3px}
+  .cal-cell{padding:6px 4px;min-height:72px}
+  .cell-date{font-size:11px}
+  .cell-tasks{display:none}
+  .cell-pct{display:none}
+  .cal-dow{font-size:9px;padding:2px 0}
+  .date-str{font-size:13px;min-width:110px}
+  .hm-cell{width:11px;height:11px}
+  .week-stats-row{grid-template-columns:repeat(3,1fr)}
+  .week-habit-row th,.week-habit-row td{padding:5px 2px!important;font-size:10px!important}
+}
+
+/* ════════════════════════════
    ANALYTICS VIEW
 ════════════════════════════ */
 .big-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
@@ -296,16 +321,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
           </div>
           <div id="taskList"></div>
         </div>
-      </div>
 
-      <div class="day-right">
         <div class="card">
           <div class="mini-cal-label">日历概览</div>
           <div class="mini-cal" id="miniCal"></div>
-        </div>
-        <div class="card">
-          <div class="card-title">本周习惯</div>
-          <div id="weekHabitGrid"></div>
         </div>
       </div>
     </div>
@@ -324,6 +343,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     <div class="card" style="padding:1.25rem">
       <div class="cal-dow-row" id="calDowRow"></div>
       <div class="cal-cells" id="calCells"></div>
+    </div>
+    <div class="card" style="margin-top:12px">
+      <div class="card-title">本周习惯打卡</div>
+      <div id="weekHabitGrid"></div>
     </div>
   </div>
 
@@ -645,34 +668,6 @@ function renderDay(){
     mc.appendChild(el);
   }
 
-  // week habit grid
-  const ws=getWeekStart(0);
-  const whg=document.getElementById('weekHabitGrid');whg.innerHTML='';
-  const table=document.createElement('table');table.style.cssText='width:100%;border-collapse:collapse;font-size:12px';
-  const thead=document.createElement('tr');
-  thead.innerHTML='<th style="text-align:left;padding:4px 0;color:var(--muted);font-weight:500;font-size:11px">习惯</th>';
-  for(let i=0;i<7;i++){
-    const d=addDays(ws,i);const dow=parseD(d).getDay();
-    const th=document.createElement('th');th.style.cssText='text-align:center;padding:4px 2px;color:var(--muted);font-weight:500;font-size:11px';
-    th.textContent='周'+WEEKDAYS[dow];thead.appendChild(th);
-  }
-  table.appendChild(thead);
-  HABITS.forEach(h=>{
-    const tr=document.createElement('tr');
-    tr.innerHTML=`<td style="padding:5px 0;color:var(--text);font-size:12px">${h.name}</td>`;
-    for(let i=0;i<7;i++){
-      const d=addDays(ws,i);const day2=data[d];
-      const done=!!(day2&&day2.habits&&day2.habits[h.id]);
-      const isFut2=d>today;
-      const td2=document.createElement('td');td2.style.cssText='text-align:center;padding:5px 2px';
-      td2.innerHTML=isFut2?`<div style="width:16px;height:16px;border-radius:50%;border:1.5px dashed var(--border-md);margin:0 auto"></div>`:
-        done?`<div style="width:16px;height:16px;border-radius:50%;background:${h.color};margin:0 auto;display:flex;align-items:center;justify-content:center"><i class="ti ti-check" style="font-size:9px;color:#fff"></i></div>`:
-        `<div style="width:16px;height:16px;border-radius:50%;border:1.5px solid var(--border-md);margin:0 auto"></div>`;
-      tr.appendChild(td2);
-    }
-    table.appendChild(tr);
-  });
-  whg.appendChild(table);
 }
 
 /* ══ WEEK VIEW ══ */
@@ -730,6 +725,41 @@ function renderWeek(){
     cell.addEventListener('click',()=>{cur=d;setView('day');});
     cells.appendChild(cell);
   });
+
+  // week habit grid
+  const whg=document.getElementById('weekHabitGrid');whg.innerHTML='';
+  const table=document.createElement('table');
+  table.className='week-habit-row';
+  table.style.cssText='width:100%;border-collapse:collapse;font-size:12px';
+  const thead=document.createElement('tr');
+  thead.innerHTML='<th style="text-align:left;padding:6px 0;color:var(--muted);font-weight:500;font-size:11px">习惯</th>';
+  days.forEach(d=>{
+    const dow=parseD(d).getDay();
+    const th=document.createElement('th');
+    th.style.cssText='text-align:center;padding:6px 4px;color:var(--muted);font-weight:500;font-size:11px';
+    th.textContent='周'+WEEKDAYS[dow];
+    if(d===today)th.style.color='var(--green)';
+    thead.appendChild(th);
+  });
+  table.appendChild(thead);
+  HABITS.forEach(h=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td style="padding:7px 0;color:var(--text);font-size:12px;font-weight:500">${h.name}</td>`;
+    days.forEach(d=>{
+      const day2=data[d];
+      const done=!!(day2&&day2.habits&&day2.habits[h.id]);
+      const isFut2=d>today;
+      const td2=document.createElement('td');td2.style.cssText='text-align:center;padding:7px 4px';
+      td2.innerHTML=isFut2
+        ?`<div style="width:18px;height:18px;border-radius:50%;border:1.5px dashed var(--border-md);margin:0 auto"></div>`
+        :done
+          ?`<div style="width:18px;height:18px;border-radius:50%;background:${h.color};margin:0 auto;display:flex;align-items:center;justify-content:center"><i class="ti ti-check" style="font-size:10px;color:#fff"></i></div>`
+          :`<div style="width:18px;height:18px;border-radius:50%;border:1.5px solid var(--border-md);margin:0 auto"></div>`;
+      tr.appendChild(td2);
+    });
+    table.appendChild(tr);
+  });
+  whg.appendChild(table);
 }
 
 /* ══ VIEW SWITCHING ══ */
