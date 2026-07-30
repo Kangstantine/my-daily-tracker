@@ -54,7 +54,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   .big-stats{grid-template-columns:repeat(2,1fr)!important}
   .analytics-body{grid-template-columns:1fr!important}
   .day-layout{grid-template-columns:1fr!important}
-  .day-right{display:none!important}
   .cal-dow-row{gap:3px}
   .cal-cells{gap:3px}
   .cal-cell{padding:6px 4px;min-height:72px}
@@ -125,9 +124,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 /* ════════════════════════════
    DAY VIEW
 ════════════════════════════ */
-.day-layout{display:grid;grid-template-columns:1fr 280px;gap:12px}
+.day-layout{display:flex;flex-direction:column;gap:12px}
 .day-left{display:flex;flex-direction:column;gap:12px}
-.day-right{display:flex;flex-direction:column;gap:12px}
 
 /* date nav */
 .date-nav-bar{display:flex;align-items:center;justify-content:space-between}
@@ -480,9 +478,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
           <div class="mini-cal-label">日历概览</div>
           <div class="mini-cal" id="miniCal"></div>
         </div>
-      </div>
 
-      <div class="day-right">
         <div class="card">
           <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem">
             <span>今日划线</span>
@@ -491,8 +487,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
           <div id="highlightsList" style="display:flex;flex-direction:column;gap:10px">
             <div style="text-align:center;padding:1.5rem 0;color:var(--faint);font-size:12px">
               <i class="ti ti-book" style="font-size:24px;display:block;margin-bottom:8px;opacity:0.4"></i>
-              暂无划线数据<br>
-              <span style="font-size:11px">连接 Notion 后自动显示</span>
+              暂无划线数据
             </div>
           </div>
         </div>
