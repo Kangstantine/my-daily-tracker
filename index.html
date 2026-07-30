@@ -125,7 +125,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 /* ════════════════════════════
    DAY VIEW
 ════════════════════════════ */
-.day-layout{display:grid;grid-template-columns:1fr 340px;gap:12px}
+.day-layout{display:grid;grid-template-columns:1fr 280px;gap:12px}
 .day-left{display:flex;flex-direction:column;gap:12px}
 .day-right{display:flex;flex-direction:column;gap:12px}
 
@@ -234,6 +234,13 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .cell-more{font-size:10px;color:var(--faint)}
 .cell-pct{font-size:10px;font-family:'DM Mono',monospace;color:var(--faint);margin-top:auto}
 .cell-bar{position:absolute;bottom:0;left:0;right:0;height:3px;background:var(--green);transform-origin:left;border-radius:0 0 var(--r) var(--r)}
+/* ════════════════════════════
+   READING HIGHLIGHTS
+════════════════════════════ */
+.highlight-item{padding:10px 12px;border-left:3px solid var(--green-light);background:var(--green-pale);border-radius:0 var(--r) var(--r) 0}
+.highlight-text{font-size:12px;color:var(--text);line-height:1.6;font-style:italic}
+.highlight-book{font-size:10px;color:var(--muted);margin-top:5px;font-family:'DM Mono',monospace}
+
 /* ════════════════════════════
    WEEKLY TASKS
 ════════════════════════════ */
@@ -472,6 +479,22 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
         <div class="card">
           <div class="mini-cal-label">日历概览</div>
           <div class="mini-cal" id="miniCal"></div>
+        </div>
+      </div>
+
+      <div class="day-right">
+        <div class="card">
+          <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem">
+            <span>今日划线</span>
+            <button id="refreshHighlights" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:14px;padding:2px" title="换一批"><i class="ti ti-refresh"></i></button>
+          </div>
+          <div id="highlightsList" style="display:flex;flex-direction:column;gap:10px">
+            <div style="text-align:center;padding:1.5rem 0;color:var(--faint);font-size:12px">
+              <i class="ti ti-book" style="font-size:24px;display:block;margin-bottom:8px;opacity:0.4"></i>
+              暂无划线数据<br>
+              <span style="font-size:11px">连接 Notion 后自动显示</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -750,6 +773,65 @@ function renderBarChart(){
   });
 }
 
+/* ══ READING HIGHLIGHTS ══ */
+let _highlights = [];
+
+async function loadHighlights(){
+  try{
+    const r = await fetch('data/highlights.json');
+    if(!r.ok) throw new Error('not found');
+    _highlights = await r.json();
+  } catch(e){
+    // fallback: try localStorage (for local testing)
+    try{
+      const raw = localStorage.getItem('reading-highlights');
+      if(raw) _highlights = JSON.parse(raw);
+    } catch(e2){}
+  }
+  renderHighlights();
+}
+
+function renderHighlights(){
+  const list = document.getElementById('highlightsList');
+  if(!list) return;
+  if(!_highlights.length){
+    list.innerHTML=`<div style="text-align:center;padding:1.5rem 0;color:var(--faint);font-size:12px">
+      <i class="ti ti-book" style="font-size:24px;display:block;margin-bottom:8px;opacity:0.4"></i>
+      暂无划线数据</div>`;
+    return;
+  }
+  // pick 3 seeded by date (same day = same 3)
+  const seed = parseInt(todayStr().replace(/-/g,''));
+  const shuffled = [..._highlights];
+  let s = seed;
+  for(let i=shuffled.length-1;i>0;i--){
+    s=(s*1664525+1013904223)&0xffffffff;
+    const j=Math.abs(s)%(i+1);
+    [shuffled[i],shuffled[j]]=[shuffled[j],shuffled[i]];
+  }
+  showHighlights(shuffled.slice(0,3));
+}
+
+function showHighlights(picked){
+  const list = document.getElementById('highlightsList');
+  if(!list) return;
+  list.innerHTML='';
+  picked.forEach(h=>{
+    const el=document.createElement('div');
+    el.className='highlight-item';
+    el.innerHTML=`<div class="highlight-text">${esc(h.text)}</div>${h.book?`<div class="highlight-book">— ${esc(h.book)}</div>`:''}`;
+    list.appendChild(el);
+  });
+}
+
+function refreshHighlights(){
+  if(!_highlights.length) return;
+  const shuffled=[..._highlights].sort(()=>Math.random()-0.5);
+  showHighlights(shuffled.slice(0,3));
+}
+
+document.getElementById('refreshHighlights').addEventListener('click', refreshHighlights);
+
 /* ══ WEEKLY TASKS ══ */
 const WEEKLY_TASKS=[
   {id:'wt-photos', text:'图片库上传', day:'周五', icon:'ti-camera'},
@@ -879,6 +961,7 @@ function renderDay(){
   }
 
   renderWeeklyTasks();
+  if(!_highlights.length) loadHighlights(); else renderHighlights();
 }
 
 /* ══ WEEK VIEW ══ */
