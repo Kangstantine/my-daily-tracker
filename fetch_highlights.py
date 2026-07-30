@@ -4,7 +4,8 @@ import urllib.error
 import os
 
 NOTION_TOKEN = os.environ["NOTION_TOKEN"]
-DATABASE_ID = "2e7e6edebc2881dda3d6000b98a22669"
+# 划线数据库页面 ID（从页面 URL 提取）
+DATABASE_ID = "2e7e6edebc28816ea9acfb5374d47c81"
 
 def notion_request(url, payload=None):
     headers = {
