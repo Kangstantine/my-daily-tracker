@@ -54,6 +54,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   .big-stats{grid-template-columns:repeat(2,1fr)!important}
   .analytics-body{grid-template-columns:1fr!important}
   .day-layout{grid-template-columns:1fr!important}
+  .day-right{display:none!important}
+  .day-highlights-mobile{display:block!important}
   .cal-dow-row{gap:3px}
   .cal-cells{gap:3px}
   .cal-cell{padding:6px 4px;min-height:72px}
@@ -124,8 +126,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 /* ════════════════════════════
    DAY VIEW
 ════════════════════════════ */
-.day-layout{display:flex;flex-direction:column;gap:12px}
+.day-layout{display:grid;grid-template-columns:1fr 280px;gap:12px}
 .day-left{display:flex;flex-direction:column;gap:12px}
+.day-right{display:flex;flex-direction:column;gap:12px}
+.day-highlights-mobile{display:none}
 
 /* date nav */
 .date-nav-bar{display:flex;align-items:center;justify-content:space-between}
@@ -478,7 +482,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
           <div class="mini-cal-label">日历概览</div>
           <div class="mini-cal" id="miniCal"></div>
         </div>
+      </div>
 
+      <div class="day-right">
         <div class="card">
           <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem">
             <span>今日划线</span>
@@ -492,6 +498,15 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
           </div>
         </div>
       </div>
+    </div>
+
+    <!-- mobile-only highlights card -->
+    <div class="day-highlights-mobile card" style="margin-top:12px">
+      <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem">
+        <span>今日划线</span>
+        <button id="refreshHighlightsMobile" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:14px;padding:2px" title="换一批"><i class="ti ti-refresh"></i></button>
+      </div>
+      <div id="highlightsListMobile" style="display:flex;flex-direction:column;gap:10px"></div>
     </div>
   </div>
 
@@ -787,12 +802,14 @@ async function loadHighlights(){
 }
 
 function renderHighlights(){
-  const list = document.getElementById('highlightsList');
-  if(!list) return;
   if(!_highlights.length){
-    list.innerHTML=`<div style="text-align:center;padding:1.5rem 0;color:var(--faint);font-size:12px">
+    const empty=`<div style="text-align:center;padding:1.5rem 0;color:var(--faint);font-size:12px">
       <i class="ti ti-book" style="font-size:24px;display:block;margin-bottom:8px;opacity:0.4"></i>
       暂无划线数据</div>`;
+    ['highlightsList','highlightsListMobile'].forEach(id=>{
+      const el=document.getElementById(id);
+      if(el) el.innerHTML=empty;
+    });
     return;
   }
   // pick 3 seeded by date (same day = same 3)
@@ -808,14 +825,16 @@ function renderHighlights(){
 }
 
 function showHighlights(picked){
-  const list = document.getElementById('highlightsList');
-  if(!list) return;
-  list.innerHTML='';
-  picked.forEach(h=>{
-    const el=document.createElement('div');
-    el.className='highlight-item';
-    el.innerHTML=`<div class="highlight-text">${esc(h.text)}</div>${h.book?`<div class="highlight-book">— ${esc(h.book)}</div>`:''}`;
-    list.appendChild(el);
+  ['highlightsList','highlightsListMobile'].forEach(id=>{
+    const list=document.getElementById(id);
+    if(!list)return;
+    list.innerHTML='';
+    picked.forEach(h=>{
+      const el=document.createElement('div');
+      el.className='highlight-item';
+      el.innerHTML=`<div class="highlight-text">${esc(h.text)}</div>${h.book?`<div class="highlight-book">— ${esc(h.book)}</div>`:''}`;
+      list.appendChild(el);
+    });
   });
 }
 
@@ -826,6 +845,7 @@ function refreshHighlights(){
 }
 
 document.getElementById('refreshHighlights').addEventListener('click', refreshHighlights);
+document.getElementById('refreshHighlightsMobile').addEventListener('click', refreshHighlights);
 
 /* ══ WEEKLY TASKS ══ */
 const WEEKLY_TASKS=[
