@@ -27,7 +27,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .app{max-width:900px;margin:0 auto;padding:2rem 1.5rem 5rem}
 
 /* ── NAV ── */
-.nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:2rem}
+.nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:2rem;flex-wrap:wrap;gap:10px}
 .nav-title{font-size:22px;font-weight:600;letter-spacing:-0.02em}
 .nav-tabs{display:flex;background:var(--surface);border:0.5px solid var(--border);border-radius:var(--r);padding:3px;gap:2px}
 .tab{background:none;border:none;border-radius:9px;padding:7px 18px;font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;color:var(--muted);transition:all 0.15s;font-weight:500}
@@ -351,7 +351,12 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       <button class="tab active" id="tabDay">Day</button>
       <button class="tab" id="tabWeek">Week</button>
     </div>
+    <button id="authBtn" style="background:var(--surface);border:0.5px solid var(--border);border-radius:9px;padding:6px 12px;font-size:12px;color:var(--muted);cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:6px;white-space:nowrap">
+      <i class="ti ti-cloud-off" id="authIcon" style="font-size:14px"></i>
+      <span id="authLabel">Sign in</span>
+    </button>
   </div>
+  <div id="syncStatus" style="text-align:right;font-size:10px;color:var(--faint);margin-top:-1rem;margin-bottom:1rem;font-family:'DM Mono',monospace"></div>
 
   <!-- ═══ GOALS VIEW ═══ -->
   <div class="view" id="viewGoals">
@@ -531,6 +536,48 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   </div>
 
 </div>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+  import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+  import { getFirestore, doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBUxkb2ecBEdDzK0yM5jthDAj68QDWazRc",
+    authDomain: "my-daily-tracker-959a1.firebaseapp.com",
+    projectId: "my-daily-tracker-959a1",
+    storageBucket: "my-daily-tracker-959a1.firebasestorage.app",
+    messagingSenderId: "540218446887",
+    appId: "1:540218446887:web:a450ba624b86f88f52aa02"
+  };
+
+  const fbApp = initializeApp(firebaseConfig);
+  const auth = getAuth(fbApp);
+  const dbFS = getFirestore(fbApp);
+  const provider = new GoogleAuthProvider();
+
+  window.__firebase = { auth, dbFS, doc, getDoc, setDoc, onSnapshot };
+  window.__firebaseReady = new Promise((resolve) => {
+    onAuthStateChanged(auth, (user) => {
+      window.__currentUser = user;
+      resolve();
+      if (window.__onAuthChange) window.__onAuthChange(user);
+    });
+  });
+
+  document.addEventListener('click', (e) => {
+    if (e.target.closest('#authBtn')) {
+      if (window.__currentUser) {
+        signOut(auth);
+      } else {
+        signInWithPopup(auth, provider).catch(err => {
+          console.error('Sign in failed', err);
+          alert('登录失败，请重试');
+        });
+      }
+    }
+  });
+</script>
+
 <script>
 const KEY='daily-tracker-v3';
 const HABITS=[
@@ -564,8 +611,104 @@ function getWeekStart(off){
 }
 
 /* storage */
-function load(){try{const r=localStorage.getItem(KEY);if(r)data=JSON.parse(r);}catch(e){data={}}render()}
-function save(){try{localStorage.setItem(KEY,JSON.stringify(data));}catch(e){}}
+function load(){try{const r=localStorage.getItem(KEY);if(r)data=JSON.parse(r);}catch(e){data={}}initAuthSync();render()}
+function save(){
+  try{localStorage.setItem(KEY,JSON.stringify(data));}catch(e){}
+  cloudSaveDebounced();
+}
+
+/* ══ FIREBASE SYNC ══ */
+let _cloudUnsub=null;
+let _cloudSaveTimer=null;
+let _suppressNextSnapshot=false;
+
+function cloudSaveDebounced(){
+  if(!window.__currentUser) return;
+  clearTimeout(_cloudSaveTimer);
+  _cloudSaveTimer=setTimeout(cloudSaveNow, 800);
+}
+
+async function cloudSaveNow(){
+  const user=window.__currentUser;
+  if(!user) return;
+  const {dbFS,doc,setDoc}=window.__firebase;
+  try{
+    _suppressNextSnapshot=true;
+    await setDoc(doc(dbFS,'trackers',user.uid),{json:JSON.stringify(data),updatedAt:Date.now()});
+    setSyncStatus('已同步 · '+new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'}));
+  }catch(e){
+    console.error('Cloud save failed',e);
+    setSyncStatus('同步失败');
+  }
+}
+
+function setSyncStatus(text){
+  const el=document.getElementById('syncStatus');
+  if(el) el.textContent=text;
+}
+
+function updateAuthUI(user){
+  const icon=document.getElementById('authIcon');
+  const label=document.getElementById('authLabel');
+  if(!icon||!label) return;
+  if(user){
+    icon.className='ti ti-cloud-check';
+    label.textContent=user.displayName?user.displayName.split(' ')[0]:'已登录';
+    setSyncStatus('云端同步已开启');
+  }else{
+    icon.className='ti ti-cloud-off';
+    label.textContent='Sign in';
+    setSyncStatus('仅本地保存 · 登录以跨设备同步');
+  }
+}
+
+async function initAuthSync(){
+  await window.__firebaseReady;
+  const user=window.__currentUser;
+  updateAuthUI(user);
+  if(user) await attachCloudSync(user);
+
+  window.__onAuthChange = async (u) => {
+    updateAuthUI(u);
+    if(u){
+      await attachCloudSync(u);
+    }else{
+      if(_cloudUnsub){_cloudUnsub();_cloudUnsub=null;}
+    }
+  };
+}
+
+async function attachCloudSync(user){
+  const {dbFS,doc,getDoc,setDoc,onSnapshot}=window.__firebase;
+  const ref=doc(dbFS,'trackers',user.uid);
+
+  // First-time merge: if cloud has data, prefer it (most recently synced device wins on load);
+  // if cloud is empty, push local data up.
+  try{
+    const snap=await getDoc(ref);
+    if(snap.exists() && snap.data().json){
+      data=JSON.parse(snap.data().json);
+      localStorage.setItem(KEY,JSON.stringify(data));
+      render();
+    }else{
+      await setDoc(ref,{json:JSON.stringify(data),updatedAt:Date.now()});
+    }
+  }catch(e){console.error('Initial cloud sync failed',e);}
+
+  if(_cloudUnsub) _cloudUnsub();
+  _cloudUnsub=onSnapshot(ref,(snap)=>{
+    if(_suppressNextSnapshot){_suppressNextSnapshot=false;return;}
+    if(snap.exists() && snap.data().json){
+      const incoming=snap.data().json;
+      if(incoming!==JSON.stringify(data)){
+        data=JSON.parse(incoming);
+        localStorage.setItem(KEY,JSON.stringify(data));
+        render();
+        setSyncStatus('已从云端更新 · '+new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'}));
+      }
+    }
+  });
+}
 function getDay(d){if(!data[d])data[d]={habits:{},tasks:[]};return data[d]}
 
 /* computed */
