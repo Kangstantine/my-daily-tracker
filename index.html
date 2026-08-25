@@ -501,7 +501,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
               <button class="add-btn" id="addVocabBtn" style="background:var(--green);border:none;color:#fff;border-radius:8px;padding:5px 10px;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:4px"><i class="ti ti-plus" style="font-size:12px"></i> 添加</button>
             </div>
           </div>
-          <div id="vocabOcrStatus" style="display:none;align-items:center;gap:8px;padding:9px 12px;margin-bottom:10px;border-radius:var(--r);background:var(--surface2);font-size:12px;color:var(--muted)">
+          <div id="vocabOcrStatus" style="display:none;align-items:flex-start;gap:8px;padding:9px 12px;margin-bottom:10px;border-radius:var(--r);background:var(--surface2);font-size:12px;color:var(--muted);word-break:break-all;line-height:1.5">
             <i class="ti ti-loader-2" style="font-size:14px;animation:spin 1s linear infinite"></i>
             <span id="vocabOcrStatusText">识别中…</span>
           </div>
@@ -1149,9 +1149,20 @@ document.getElementById('vocabCameraInput').addEventListener('change', async (e)
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ image: base64, mediaType }),
     });
-    if (!res.ok) throw new Error('识别请求失败');
-    const result = await res.json();
-    if (result.error) throw new Error(result.error);
+    const rawText = await res.text();
+    console.log('OCR raw response:', res.status, rawText);
+
+    let result;
+    try {
+      result = JSON.parse(rawText);
+    } catch (parseErr) {
+      throw new Error('返回内容不是JSON: ' + rawText.slice(0, 200));
+    }
+
+    if (!res.ok) throw new Error('请求失败(' + res.status + '): ' + rawText.slice(0, 200));
+    if (result.error) throw new Error('Worker错误: ' + result.error + (result.stack ? ' | ' + result.stack.slice(0,150) : ''));
+    if (result.debug) throw new Error('API状态' + result.status + ': ' + JSON.stringify(result.raw).slice(0, 300));
+    if (!result.word) throw new Error('未识别到单词，原始返回: ' + rawText.slice(0, 200));
 
     // fill the vocab form
     vocabFormOpen = true;
@@ -1165,8 +1176,9 @@ document.getElementById('vocabCameraInput').addEventListener('change', async (e)
     setTimeout(() => { statusEl.style.display = 'none'; }, 2500);
   } catch (err) {
     console.error('OCR failed', err);
-    statusText.textContent = '识别失败，请手动输入';
-    setTimeout(() => { statusEl.style.display = 'none'; }, 3000);
+    statusText.textContent = err.message || '识别失败，请手动输入';
+    statusEl.style.background = '#FDECEA';
+    setTimeout(() => { statusEl.style.display = 'none'; statusEl.style.background=''; }, 8000);
   }
 });
 
