@@ -203,6 +203,19 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 
 /* mini calendar strip */
 .mini-cal-label{font-size:11px;font-weight:600;color:var(--muted);letter-spacing:0.07em;text-transform:uppercase;margin-bottom:8px}
+
+/* ── VOCAB ── */
+.vocab-item{display:flex;align-items:center;gap:8px;padding:9px 12px;border:0.5px solid var(--border);border-radius:var(--r);background:var(--surface)}
+@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+.vocab-word{font-weight:600;font-size:13px;color:var(--text)}
+.vocab-meaning{flex:1;font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vocab-lang{font-size:9px;font-weight:600;padding:2px 6px;border-radius:20px;flex-shrink:0}
+.vocab-lang.en{background:#E6F1FB;color:#0C447C}
+.vocab-lang.nl{background:#FAEEDA;color:#633806}
+.vocab-del{background:none;border:none;cursor:pointer;color:var(--faint);padding:2px;font-size:12px;flex-shrink:0}
+.vocab-del:hover{color:#E24B4A}
+.highlight-item.vocab-review{border-left-color:#E07B39;background:#FDF3E9}
+.highlight-item.vocab-review .highlight-text{font-weight:600}
 .mini-cal{display:flex;gap:3px;flex-wrap:wrap}
 .mc-day{width:24px;height:24px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:10px;font-family:'DM Mono',monospace;color:var(--faint);background:var(--surface2);border:0.5px solid var(--border);cursor:pointer;transition:all 0.1s}
 .mc-day.partial{background:var(--green-pale);border-color:var(--green-light);color:var(--green-dark)}
@@ -436,6 +449,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       <div class="bar-chart" id="barChart"></div>
       <div style="display:flex;gap:6px;margin-top:8px;justify-content:center" id="barLabels"></div>
     </div>
+    <div class="card">
+      <div class="card-title">生词本统计</div>
+      <div class="grid3" id="vocabStats"></div>
+    </div>
   </div>
 
   <!-- ═══ DAY VIEW ═══ -->
@@ -477,6 +494,29 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 
         <div class="card">
           <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem">
+            <span>生词本</span>
+            <div style="display:flex;gap:6px">
+              <button id="vocabCameraBtn" style="background:none;border:0.5px solid var(--border-md);color:var(--muted);border-radius:8px;padding:5px 9px;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:4px"><i class="ti ti-camera" style="font-size:12px"></i> 拍照识别</button>
+              <input type="file" id="vocabCameraInput" accept="image/*" capture="environment" style="display:none"/>
+              <button class="add-btn" id="addVocabBtn" style="background:var(--green);border:none;color:#fff;border-radius:8px;padding:5px 10px;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:4px"><i class="ti ti-plus" style="font-size:12px"></i> 添加</button>
+            </div>
+          </div>
+          <div id="vocabOcrStatus" style="display:none;align-items:center;gap:8px;padding:9px 12px;margin-bottom:10px;border-radius:var(--r);background:var(--surface2);font-size:12px;color:var(--muted)">
+            <i class="ti ti-loader-2" style="font-size:14px;animation:spin 1s linear infinite"></i>
+            <span id="vocabOcrStatusText">识别中…</span>
+          </div>
+          <div id="vocabForm" class="add-form" style="margin-bottom:10px">
+            <input type="text" id="newVocabWord" placeholder="单词…" maxlength="40" style="flex:1;min-width:100px"/>
+            <input type="text" id="newVocabMeaning" placeholder="中文释义…" maxlength="80" style="flex:1.5;min-width:120px"/>
+            <select id="newVocabLang"><option value="en">EN</option><option value="nl">NL</option></select>
+            <button class="btn-ok" id="confirmVocab">添加</button>
+            <button class="btn-no" id="cancelVocab">取消</button>
+          </div>
+          <div id="vocabList" style="display:flex;flex-direction:column;gap:5px"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem">
             <span>每周任务</span>
             <span style="font-size:10px;color:var(--faint);font-family:'DM Mono',monospace" id="weeklyResetLabel"></span>
           </div>
@@ -492,13 +532,13 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       <div class="day-right">
         <div class="card">
           <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem">
-            <span>今日划线</span>
+            <span>今日回顾</span>
             <button id="refreshHighlights" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:14px;padding:2px" title="换一批"><i class="ti ti-refresh"></i></button>
           </div>
           <div id="highlightsList" style="display:flex;flex-direction:column;gap:10px">
             <div style="text-align:center;padding:1.5rem 0;color:var(--faint);font-size:12px">
               <i class="ti ti-book" style="font-size:24px;display:block;margin-bottom:8px;opacity:0.4"></i>
-              暂无划线数据
+              暂无回顾数据
             </div>
           </div>
         </div>
@@ -508,7 +548,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     <!-- mobile-only highlights card -->
     <div class="day-highlights-mobile card" style="margin-top:12px">
       <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem">
-        <span>今日划线</span>
+        <span>今日回顾</span>
         <button id="refreshHighlightsMobile" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:14px;padding:2px" title="换一批"><i class="ti ti-refresh"></i></button>
       </div>
       <div id="highlightsListMobile" style="display:flex;flex-direction:column;gap:10px"></div>
@@ -800,6 +840,19 @@ function renderAnalytics(){
 
   renderHeatmap();
   renderBarChart();
+  renderVocabStats();
+}
+
+function renderVocabStats(){
+  const vocab=getAllVocab();
+  const enCount=vocab.filter(v=>v.lang==='en').length;
+  const nlCount=vocab.filter(v=>v.lang==='nl').length;
+  const el=document.getElementById('vocabStats');
+  if(!el) return;
+  el.innerHTML=`
+    <div class="stat"><div class="stat-val">${vocab.length}</div><div class="stat-lbl">总计</div></div>
+    <div class="stat"><div class="stat-val" style="color:#0C447C">${enCount}</div><div class="stat-lbl">英语</div></div>
+    <div class="stat"><div class="stat-val" style="color:#633806">${nlCount}</div><div class="stat-lbl">荷兰语</div></div>`;
 }
 
 function renderHeatmap(){
@@ -926,7 +979,7 @@ function renderBarChart(){
   });
 }
 
-/* ══ READING HIGHLIGHTS ══ */
+/* ══ READING HIGHLIGHTS + VOCAB REVIEW ══ */
 let _highlights = [];
 
 async function loadHighlights(){
@@ -944,27 +997,44 @@ async function loadHighlights(){
   renderHighlights();
 }
 
+function getAllVocab(){
+  return data.vocab || [];
+}
+
 function renderHighlights(){
-  if(!_highlights.length){
+  const vocab=getAllVocab();
+  if(!_highlights.length && !vocab.length){
     const empty=`<div style="text-align:center;padding:1.5rem 0;color:var(--faint);font-size:12px">
       <i class="ti ti-book" style="font-size:24px;display:block;margin-bottom:8px;opacity:0.4"></i>
-      暂无划线数据</div>`;
+      暂无回顾数据</div>`;
     ['highlightsList','highlightsListMobile'].forEach(id=>{
       const el=document.getElementById(id);
       if(el) el.innerHTML=empty;
     });
     return;
   }
-  // pick 3 seeded by date (same day = same 3)
+  // pick seeded by date (same day = same picks)
   const seed = parseInt(todayStr().replace(/-/g,''));
-  const shuffled = [..._highlights];
-  let s = seed;
+  const picked = pickReviewItems(seed);
+  showHighlights(picked);
+}
+
+function seededShuffle(arr, seed){
+  const shuffled=[...arr];
+  let s=seed;
   for(let i=shuffled.length-1;i>0;i--){
     s=(s*1664525+1013904223)&0xffffffff;
     const j=Math.abs(s)%(i+1);
     [shuffled[i],shuffled[j]]=[shuffled[j],shuffled[i]];
   }
-  showHighlights(shuffled.slice(0,3));
+  return shuffled;
+}
+
+function pickReviewItems(seed){
+  const vocab=getAllVocab();
+  const hlPicks = _highlights.length ? seededShuffle(_highlights, seed).slice(0,3).map(h=>({type:'highlight',...h})) : [];
+  const vocabPicks = vocab.length ? seededShuffle(vocab, seed+1).slice(0,2).map(v=>({type:'vocab',...v})) : [];
+  return seededShuffle([...hlPicks, ...vocabPicks], seed+2);
 }
 
 function showHighlights(picked){
@@ -974,21 +1044,145 @@ function showHighlights(picked){
     list.innerHTML='';
     picked.forEach(h=>{
       const el=document.createElement('div');
-      el.className='highlight-item';
-      el.innerHTML=`<div class="highlight-text">${esc(h.text)}</div>${h.book?`<div class="highlight-book">— ${esc(h.book)}</div>`:''}`;
+      if(h.type==='vocab'){
+        el.className='highlight-item vocab-review';
+        const langLabel=h.lang==='nl'?'荷兰语':'英语';
+        el.innerHTML=`<div class="highlight-text">${esc(h.word)} — ${esc(h.meaning)}</div><div class="highlight-book">${langLabel}生词</div>`;
+      }else{
+        el.className='highlight-item';
+        el.innerHTML=`<div class="highlight-text">${esc(h.text)}</div>${h.book?`<div class="highlight-book">— ${esc(h.book)}</div>`:''}`;
+      }
       list.appendChild(el);
     });
   });
 }
 
 function refreshHighlights(){
-  if(!_highlights.length) return;
-  const shuffled=[..._highlights].sort(()=>Math.random()-0.5);
-  showHighlights(shuffled.slice(0,3));
+  const vocab=getAllVocab();
+  if(!_highlights.length && !vocab.length) return;
+  const randomSeed=Math.floor(Math.random()*1e9);
+  showHighlights(pickReviewItems(randomSeed));
 }
 
 document.getElementById('refreshHighlights').addEventListener('click', refreshHighlights);
 document.getElementById('refreshHighlightsMobile').addEventListener('click', refreshHighlights);
+
+/* ══ VOCAB ══ */
+let vocabFormOpen=false;
+
+function renderVocab(){
+  const vocab=getAllVocab();
+  const list=document.getElementById('vocabList');
+  if(!list) return;
+  if(!vocab.length){
+    list.innerHTML=`<div style="text-align:center;padding:1rem;font-size:12px;color:var(--faint);border:0.5px dashed var(--border);border-radius:var(--r)">还没有生词 — 点击右上角添加</div>`;
+    return;
+  }
+  // show most recent 8, newest first
+  const recent=[...vocab].slice(-8).reverse();
+  list.innerHTML='';
+  recent.forEach(v=>{
+    const el=document.createElement('div');
+    el.className='vocab-item';
+    el.innerHTML=`<span class="vocab-word">${esc(v.word)}</span><span class="vocab-meaning">${esc(v.meaning)}</span><span class="vocab-lang ${v.lang}">${v.lang.toUpperCase()}</span><button class="vocab-del" data-id="${v.id}"><i class="ti ti-x"></i></button>`;
+    list.appendChild(el);
+  });
+  list.querySelectorAll('.vocab-del').forEach(btn=>{
+    btn.addEventListener('click',()=>deleteVocab(btn.dataset.id));
+  });
+}
+
+function addVocab(){
+  const word=document.getElementById('newVocabWord').value.trim();
+  const meaning=document.getElementById('newVocabMeaning').value.trim();
+  const lang=document.getElementById('newVocabLang').value;
+  if(!word||!meaning) return;
+  if(!data.vocab) data.vocab=[];
+  data.vocab.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,5),word,meaning,lang,date:todayStr()});
+  document.getElementById('newVocabWord').value='';
+  document.getElementById('newVocabMeaning').value='';
+  vocabFormOpen=false;
+  document.getElementById('vocabForm').classList.remove('open');
+  save();renderVocab();renderHighlights();
+}
+
+function deleteVocab(id){
+  data.vocab=(data.vocab||[]).filter(v=>v.id!==id);
+  save();renderVocab();renderHighlights();
+}
+
+document.getElementById('addVocabBtn').addEventListener('click',()=>{
+  vocabFormOpen=!vocabFormOpen;
+  document.getElementById('vocabForm').classList.toggle('open',vocabFormOpen);
+  if(vocabFormOpen) document.getElementById('newVocabWord').focus();
+});
+document.getElementById('cancelVocab').addEventListener('click',()=>{
+  vocabFormOpen=false;
+  document.getElementById('vocabForm').classList.remove('open');
+  document.getElementById('newVocabWord').value='';
+  document.getElementById('newVocabMeaning').value='';
+});
+document.getElementById('confirmVocab').addEventListener('click',addVocab);
+document.getElementById('newVocabMeaning').addEventListener('keydown',e=>{if(e.key==='Enter')addVocab();});
+
+/* ══ VOCAB CAMERA OCR ══ */
+const OCR_WORKER_URL = 'https://morning-unit-76a9.shaokang-li.workers.dev';
+
+document.getElementById('vocabCameraBtn').addEventListener('click', () => {
+  document.getElementById('vocabCameraInput').click();
+});
+
+document.getElementById('vocabCameraInput').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  e.target.value = ''; // reset so same file can be picked again
+
+  const statusEl = document.getElementById('vocabOcrStatus');
+  const statusText = document.getElementById('vocabOcrStatusText');
+  statusEl.style.display = 'flex';
+  statusText.textContent = '识别中…';
+
+  try {
+    const { base64, mediaType } = await fileToBase64(file);
+    const res = await fetch(OCR_WORKER_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ image: base64, mediaType }),
+    });
+    if (!res.ok) throw new Error('识别请求失败');
+    const result = await res.json();
+    if (result.error) throw new Error(result.error);
+
+    // fill the vocab form
+    vocabFormOpen = true;
+    document.getElementById('vocabForm').classList.add('open');
+    document.getElementById('newVocabWord').value = result.word || '';
+    document.getElementById('newVocabMeaning').value = result.meaning || '';
+    if (result.lang === 'nl' || result.lang === 'en') {
+      document.getElementById('newVocabLang').value = result.lang;
+    }
+    statusText.textContent = '识别完成，请确认后保存';
+    setTimeout(() => { statusEl.style.display = 'none'; }, 2500);
+  } catch (err) {
+    console.error('OCR failed', err);
+    statusText.textContent = '识别失败，请手动输入';
+    setTimeout(() => { statusEl.style.display = 'none'; }, 3000);
+  }
+});
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result; // data:image/jpeg;base64,....
+      const [header, base64] = result.split(',');
+      const mediaType = header.match(/data:(.*?);/)?.[1] || 'image/jpeg';
+      resolve({ base64, mediaType });
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
 
 /* ══ WEEKLY TASKS ══ */
 const WEEKLY_TASKS=[
@@ -1119,6 +1313,7 @@ function renderDay(){
   }
 
   renderWeeklyTasks();
+  renderVocab();
   if(!_highlights.length) loadHighlights(); else renderHighlights();
 }
 
