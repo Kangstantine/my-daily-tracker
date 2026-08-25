@@ -206,6 +206,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 
 /* ── VOCAB ── */
 .vocab-item{display:flex;align-items:center;gap:8px;padding:9px 12px;border:0.5px solid var(--border);border-radius:var(--r);background:var(--surface)}
+.note-item{display:flex;align-items:flex-start;gap:8px;padding:9px 12px;border:0.5px solid var(--border);border-radius:var(--r);background:var(--surface)}
+.note-text{flex:1;font-size:12px;color:var(--text);line-height:1.5;word-break:break-word}
+.note-del{background:none;border:none;cursor:pointer;color:var(--faint);padding:2px;font-size:12px;flex-shrink:0}
+.note-del:hover{color:#E24B4A}
 @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
 .vocab-word{font-weight:600;font-size:13px;color:var(--text)}
 .vocab-meaning{flex:1;font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -463,7 +467,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
         <span class="date-str" id="dayLabel"></span>
         <button class="nav-btn" id="nextDay"><i class="ti ti-chevron-right"></i></button>
       </div>
-      <button class="add-task-btn" id="addTaskBtn"><i class="ti ti-plus"></i> 添加任务</button>
     </div>
 
     <div class="day-layout">
@@ -482,7 +485,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
         </div>
 
         <div class="card">
-          <div class="card-title">任务</div>
+          <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem">
+            <span>任务</span>
+            <button class="add-btn" id="addTaskBtn" style="background:var(--green);border:none;color:#fff;border-radius:8px;padding:5px 10px;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:4px"><i class="ti ti-plus" style="font-size:12px"></i> 添加</button>
+          </div>
           <div id="addForm" class="add-form" style="margin-bottom:12px">
             <input type="text" id="newText" placeholder="任务名称…" maxlength="80"/>
             <select id="newCat"><option value="work">工作</option><option value="life">生活</option><option value="health">健康</option></select>
@@ -513,6 +519,19 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
             <button class="btn-no" id="cancelVocab">取消</button>
           </div>
           <div id="vocabList" style="display:flex;flex-direction:column;gap:5px"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem">
+            <span>笔记本</span>
+            <button class="add-btn" id="addNoteBtn" style="background:var(--green);border:none;color:#fff;border-radius:8px;padding:5px 10px;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:4px"><i class="ti ti-plus" style="font-size:12px"></i> 添加</button>
+          </div>
+          <div id="noteForm" class="add-form" style="margin-bottom:10px">
+            <input type="text" id="newNoteText" placeholder="记点什么…" maxlength="200" style="flex:1;min-width:160px"/>
+            <button class="btn-ok" id="confirmNote">添加</button>
+            <button class="btn-no" id="cancelNote">取消</button>
+          </div>
+          <div id="noteList" style="display:flex;flex-direction:column;gap:5px"></div>
         </div>
 
         <div class="card">
@@ -1125,6 +1144,63 @@ document.getElementById('cancelVocab').addEventListener('click',()=>{
 document.getElementById('confirmVocab').addEventListener('click',addVocab);
 document.getElementById('newVocabMeaning').addEventListener('keydown',e=>{if(e.key==='Enter')addVocab();});
 
+/* ══ NOTES ══ */
+let noteFormOpen=false;
+
+function getAllNotes(){
+  return data.notes || [];
+}
+
+function renderNotes(){
+  const notes=getAllNotes();
+  const list=document.getElementById('noteList');
+  if(!list) return;
+  if(!notes.length){
+    list.innerHTML=`<div style="text-align:center;padding:1rem;font-size:12px;color:var(--faint);border:0.5px dashed var(--border);border-radius:var(--r)">还没有笔记 — 点击右上角添加</div>`;
+    return;
+  }
+  const recent=[...notes].slice(-8).reverse();
+  list.innerHTML='';
+  recent.forEach(n=>{
+    const el=document.createElement('div');
+    el.className='note-item';
+    el.innerHTML=`<span class="note-text">${esc(n.text)}</span><button class="note-del" data-id="${n.id}"><i class="ti ti-x"></i></button>`;
+    list.appendChild(el);
+  });
+  list.querySelectorAll('.note-del').forEach(btn=>{
+    btn.addEventListener('click',()=>deleteNote(btn.dataset.id));
+  });
+}
+
+function addNote(){
+  const text=document.getElementById('newNoteText').value.trim();
+  if(!text) return;
+  if(!data.notes) data.notes=[];
+  data.notes.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,5),text,date:todayStr()});
+  document.getElementById('newNoteText').value='';
+  noteFormOpen=false;
+  document.getElementById('noteForm').classList.remove('open');
+  save();renderNotes();
+}
+
+function deleteNote(id){
+  data.notes=(data.notes||[]).filter(n=>n.id!==id);
+  save();renderNotes();
+}
+
+document.getElementById('addNoteBtn').addEventListener('click',()=>{
+  noteFormOpen=!noteFormOpen;
+  document.getElementById('noteForm').classList.toggle('open',noteFormOpen);
+  if(noteFormOpen) document.getElementById('newNoteText').focus();
+});
+document.getElementById('cancelNote').addEventListener('click',()=>{
+  noteFormOpen=false;
+  document.getElementById('noteForm').classList.remove('open');
+  document.getElementById('newNoteText').value='';
+});
+document.getElementById('confirmNote').addEventListener('click',addNote);
+document.getElementById('newNoteText').addEventListener('keydown',e=>{if(e.key==='Enter')addNote();});
+
 /* ══ VOCAB CAMERA OCR ══ */
 const OCR_WORKER_URL = 'https://morning-unit-76a9.shaokang-li.workers.dev';
 
@@ -1326,6 +1402,7 @@ function renderDay(){
 
   renderWeeklyTasks();
   renderVocab();
+  renderNotes();
   if(!_highlights.length) loadHighlights(); else renderHighlights();
 }
 
