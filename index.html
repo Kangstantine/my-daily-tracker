@@ -457,6 +457,17 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       <div class="card-title">生词本统计</div>
       <div class="grid3" id="vocabStats"></div>
     </div>
+    <div class="card">
+      <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem">
+        <span>生词 & 笔记历史回顾</span>
+        <select id="historyFilter" style="border:0.5px solid var(--border-md);border-radius:8px;padding:5px 8px;font-size:11px;background:var(--surface);color:var(--text);font-family:'DM Sans',sans-serif;cursor:pointer">
+          <option value="all">全部</option>
+          <option value="vocab">仅生词</option>
+          <option value="notes">仅笔记</option>
+        </select>
+      </div>
+      <div id="historyList" style="display:flex;flex-direction:column;gap:6px;max-height:400px;overflow-y:auto"></div>
+    </div>
   </div>
 
   <!-- ═══ DAY VIEW ═══ -->
@@ -860,6 +871,7 @@ function renderAnalytics(){
   renderHeatmap();
   renderBarChart();
   renderVocabStats();
+  renderHistoryList();
 }
 
 function renderVocabStats(){
@@ -873,6 +885,50 @@ function renderVocabStats(){
     <div class="stat"><div class="stat-val" style="color:#0C447C">${enCount}</div><div class="stat-lbl">英语</div></div>
     <div class="stat"><div class="stat-val" style="color:#633806">${nlCount}</div><div class="stat-lbl">荷兰语</div></div>`;
 }
+
+function renderHistoryList(){
+  const list=document.getElementById('historyList');
+  if(!list) return;
+  const filter=document.getElementById('historyFilter')?.value || 'all';
+
+  const vocabItems = filter!=='notes' ? getAllVocab().map(v=>({...v, _type:'vocab'})) : [];
+  const noteItems = filter!=='vocab' ? getAllNotes().map(n=>({...n, _type:'note'})) : [];
+  const combined = [...vocabItems, ...noteItems].sort((a,b)=> (a.date<b.date?1:a.date>b.date?-1: (b.id>a.id?1:-1)));
+
+  if(!combined.length){
+    list.innerHTML=`<div style="text-align:center;padding:1.5rem;font-size:12px;color:var(--faint);border:0.5px dashed var(--border);border-radius:var(--r)">还没有记录</div>`;
+    return;
+  }
+
+  // group by date
+  const groups={};
+  combined.forEach(item=>{
+    if(!groups[item.date]) groups[item.date]=[];
+    groups[item.date].push(item);
+  });
+
+  list.innerHTML='';
+  Object.keys(groups).forEach(date=>{
+    const dayLabel=document.createElement('div');
+    dayLabel.style.cssText='font-size:11px;font-weight:600;color:var(--muted);margin-top:8px;font-family:\'DM Mono\',monospace';
+    dayLabel.textContent=fmtDate(date);
+    list.appendChild(dayLabel);
+
+    groups[date].forEach(item=>{
+      const el=document.createElement('div');
+      if(item._type==='vocab'){
+        el.className='vocab-item';
+        el.innerHTML=`<span class="vocab-word">${esc(item.word)}</span><span class="vocab-meaning">${esc(item.meaning)}</span><span class="vocab-lang ${item.lang}">${item.lang.toUpperCase()}</span>`;
+      }else{
+        el.className='note-item';
+        el.innerHTML=`<span class="note-text">${esc(item.text)}</span>`;
+      }
+      list.appendChild(el);
+    });
+  });
+}
+
+document.getElementById('historyFilter')?.addEventListener('change', renderHistoryList);
 
 function renderHeatmap(){
   document.getElementById('hmYear').textContent=hmYear;
@@ -1090,15 +1146,15 @@ document.getElementById('refreshHighlightsMobile').addEventListener('click', ref
 let vocabFormOpen=false;
 
 function renderVocab(){
-  const vocab=getAllVocab();
+  const allVocab=getAllVocab();
+  const vocab=allVocab.filter(v=>v.date===cur);
   const list=document.getElementById('vocabList');
   if(!list) return;
   if(!vocab.length){
-    list.innerHTML=`<div style="text-align:center;padding:1rem;font-size:12px;color:var(--faint);border:0.5px dashed var(--border);border-radius:var(--r)">还没有生词 — 点击右上角添加</div>`;
+    list.innerHTML=`<div style="text-align:center;padding:1rem;font-size:12px;color:var(--faint);border:0.5px dashed var(--border);border-radius:var(--r)">${cur===todayStr()?'今天还没有生词 — 点击右上角添加':'这天没有添加生词'}</div>`;
     return;
   }
-  // show most recent 8, newest first
-  const recent=[...vocab].slice(-8).reverse();
+  const recent=[...vocab].reverse();
   list.innerHTML='';
   recent.forEach(v=>{
     const el=document.createElement('div');
@@ -1117,7 +1173,7 @@ function addVocab(){
   const lang=document.getElementById('newVocabLang').value;
   if(!word||!meaning) return;
   if(!data.vocab) data.vocab=[];
-  data.vocab.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,5),word,meaning,lang,date:todayStr()});
+  data.vocab.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,5),word,meaning,lang,date:cur});
   document.getElementById('newVocabWord').value='';
   document.getElementById('newVocabMeaning').value='';
   vocabFormOpen=false;
@@ -1152,14 +1208,15 @@ function getAllNotes(){
 }
 
 function renderNotes(){
-  const notes=getAllNotes();
+  const allNotes=getAllNotes();
+  const notes=allNotes.filter(n=>n.date===cur);
   const list=document.getElementById('noteList');
   if(!list) return;
   if(!notes.length){
-    list.innerHTML=`<div style="text-align:center;padding:1rem;font-size:12px;color:var(--faint);border:0.5px dashed var(--border);border-radius:var(--r)">还没有笔记 — 点击右上角添加</div>`;
+    list.innerHTML=`<div style="text-align:center;padding:1rem;font-size:12px;color:var(--faint);border:0.5px dashed var(--border);border-radius:var(--r)">${cur===todayStr()?'今天还没有笔记 — 点击右上角添加':'这天没有添加笔记'}</div>`;
     return;
   }
-  const recent=[...notes].slice(-8).reverse();
+  const recent=[...notes].reverse();
   list.innerHTML='';
   recent.forEach(n=>{
     const el=document.createElement('div');
@@ -1176,7 +1233,7 @@ function addNote(){
   const text=document.getElementById('newNoteText').value.trim();
   if(!text) return;
   if(!data.notes) data.notes=[];
-  data.notes.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,5),text,date:todayStr()});
+  data.notes.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,5),text,date:cur});
   document.getElementById('newNoteText').value='';
   noteFormOpen=false;
   document.getElementById('noteForm').classList.remove('open');
