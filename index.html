@@ -1078,7 +1078,8 @@ function getAllVocab(){
 
 function renderHighlights(){
   const vocab=getAllVocab();
-  if(!_highlights.length && !vocab.length){
+  const notes=getAllNotes();
+  if(!_highlights.length && !vocab.length && !notes.length){
     const empty=`<div style="text-align:center;padding:1.5rem 0;color:var(--faint);font-size:12px">
       <i class="ti ti-book" style="font-size:24px;display:block;margin-bottom:8px;opacity:0.4"></i>
       暂无回顾数据</div>`;
@@ -1107,9 +1108,11 @@ function seededShuffle(arr, seed){
 
 function pickReviewItems(seed){
   const vocab=getAllVocab();
-  const hlPicks = _highlights.length ? seededShuffle(_highlights, seed).slice(0,3).map(h=>({type:'highlight',...h})) : [];
+  const notes=getAllNotes();
+  const hlPicks = _highlights.length ? seededShuffle(_highlights, seed).slice(0,2).map(h=>({type:'highlight',...h})) : [];
   const vocabPicks = vocab.length ? seededShuffle(vocab, seed+1).slice(0,2).map(v=>({type:'vocab',...v})) : [];
-  return seededShuffle([...hlPicks, ...vocabPicks], seed+2);
+  const notePicks = notes.length ? seededShuffle(notes, seed+3).slice(0,1).map(n=>({type:'note',...n})) : [];
+  return seededShuffle([...hlPicks, ...vocabPicks, ...notePicks], seed+2);
 }
 
 function showHighlights(picked){
@@ -1123,6 +1126,9 @@ function showHighlights(picked){
         el.className='highlight-item vocab-review';
         const langLabel=h.lang==='nl'?'荷兰语':'英语';
         el.innerHTML=`<div class="highlight-text">${esc(h.word)} — ${esc(h.meaning)}</div><div class="highlight-book">${langLabel}生词</div>`;
+      }else if(h.type==='note'){
+        el.className='highlight-item vocab-review';
+        el.innerHTML=`<div class="highlight-text">${esc(h.text)}</div><div class="highlight-book">笔记 · ${fmtDate(h.date)}</div>`;
       }else{
         el.className='highlight-item';
         el.innerHTML=`<div class="highlight-text">${esc(h.text)}</div>${h.book?`<div class="highlight-book">— ${esc(h.book)}</div>`:''}`;
@@ -1134,7 +1140,8 @@ function showHighlights(picked){
 
 function refreshHighlights(){
   const vocab=getAllVocab();
-  if(!_highlights.length && !vocab.length) return;
+  const notes=getAllNotes();
+  if(!_highlights.length && !vocab.length && !notes.length) return;
   const randomSeed=Math.floor(Math.random()*1e9);
   showHighlights(pickReviewItems(randomSeed));
 }
