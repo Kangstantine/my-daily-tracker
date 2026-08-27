@@ -210,6 +210,27 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .note-text{flex:1;font-size:12px;color:var(--text);line-height:1.5;word-break:break-word}
 .note-del{background:none;border:none;cursor:pointer;color:var(--faint);padding:2px;font-size:12px;flex-shrink:0}
 .note-del:hover{color:#E24B4A}
+
+/* ── COUNTDOWN TASKS ── */
+.cd-item{border:0.5px solid var(--border);border-radius:var(--r-lg);padding:0.9rem 1rem;background:var(--surface)}
+.cd-item.urgent{border-color:#E8B4A0;background:#FDF3EF}
+.cd-item.done{background:var(--green-pale);border-color:var(--green-light)}
+.cd-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px}
+.cd-name{font-size:14px;font-weight:600;color:var(--text)}
+.cd-deadline{font-size:11px;color:var(--muted);margin-top:2px;font-family:'DM Mono',monospace}
+.cd-deadline.urgent{color:#C0392B;font-weight:500}
+.cd-del{background:none;border:none;cursor:pointer;color:var(--faint);padding:2px;font-size:13px;flex-shrink:0}
+.cd-del:hover{color:#E24B4A}
+.cd-prog-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;font-size:12px}
+.cd-prog-count{font-family:'DM Mono',monospace;font-weight:600;color:var(--text)}
+.cd-prog-track{height:6px;background:var(--surface2);border-radius:3px;overflow:hidden;margin-bottom:8px}
+.cd-prog-fill{height:100%;border-radius:3px;background:var(--green);transition:width 0.3s ease}
+.cd-prog-fill.urgent{background:#C0392B}
+.cd-controls{display:flex;align-items:center;gap:6px}
+.cd-controls input{width:64px;border:0.5px solid var(--border-md);border-radius:7px;padding:5px 8px;font-size:12px;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif}
+.cd-controls button{background:var(--green);border:none;color:#fff;border-radius:7px;padding:5px 10px;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif}
+.cd-pace{font-size:11px;color:var(--muted);margin-left:auto}
+.cd-pace.urgent{color:#C0392B}
 @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
 .vocab-word{font-weight:600;font-size:13px;color:var(--text)}
 .vocab-meaning{flex:1;font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -488,6 +509,22 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
             <div class="prog-row"><span class="prog-msg" id="dayProgMsg"></span><span class="prog-pct" id="dayProgPct">0%</span></div>
             <div class="prog-track"><div class="prog-fill" id="dayProgFill" style="width:0%"></div></div>
           </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem">
+            <span>限时任务</span>
+            <button class="add-btn" id="addCountdownBtn" style="background:var(--green);border:none;color:#fff;border-radius:8px;padding:5px 10px;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:4px"><i class="ti ti-plus" style="font-size:12px"></i> 添加</button>
+          </div>
+          <div id="countdownForm" class="add-form" style="margin-bottom:10px;flex-wrap:wrap">
+            <input type="text" id="cdName" placeholder="任务名称，如：摄影图片编辑" style="flex:1;min-width:160px"/>
+            <input type="number" id="cdTotal" placeholder="总数量" min="1" style="width:90px"/>
+            <input type="text" id="cdUnit" placeholder="单位，如：张" style="width:70px"/>
+            <input type="date" id="cdDeadline" style="min-width:140px"/>
+            <button class="btn-ok" id="confirmCountdown">添加</button>
+            <button class="btn-no" id="cancelCountdown">取消</button>
+          </div>
+          <div id="countdownList" style="display:flex;flex-direction:column;gap:10px"></div>
         </div>
 
         <div class="card">
@@ -1265,6 +1302,120 @@ document.getElementById('cancelNote').addEventListener('click',()=>{
 document.getElementById('confirmNote').addEventListener('click',addNote);
 document.getElementById('newNoteText').addEventListener('keydown',e=>{if(e.key==='Enter')addNote();});
 
+/* ══ COUNTDOWN TASKS ══ */
+let countdownFormOpen=false;
+
+function getCountdownTasks(){
+  return data.countdownTasks || [];
+}
+
+function renderCountdownTasks(){
+  const tasks=getCountdownTasks();
+  const list=document.getElementById('countdownList');
+  if(!list) return;
+  if(!tasks.length){
+    list.innerHTML=`<div style="text-align:center;padding:1rem;font-size:12px;color:var(--faint);border:0.5px dashed var(--border);border-radius:var(--r)">没有进行中的限时任务</div>`;
+    return;
+  }
+  const today=todayStr();
+  list.innerHTML='';
+  tasks.forEach(t=>{
+    const daysLeft=Math.ceil((parseD(t.deadline)-parseD(today))/(864e5));
+    const remaining=Math.max(0,t.total-t.done);
+    const pct=Math.min(100,Math.round(t.done/t.total*100));
+    const isDone=t.done>=t.total;
+    const isUrgent=!isDone && daysLeft<=1;
+    const perDay=daysLeft>0?Math.ceil(remaining/daysLeft):remaining;
+
+    const el=document.createElement('div');
+    el.className='cd-item'+(isDone?' done':isUrgent?' urgent':'');
+
+    let deadlineText;
+    if(isDone) deadlineText='已完成';
+    else if(daysLeft<0) deadlineText=`已逾期 ${Math.abs(daysLeft)} 天`;
+    else if(daysLeft===0) deadlineText='今天截止';
+    else deadlineText=`还剩 ${daysLeft} 天`;
+
+    el.innerHTML=`
+      <div class="cd-top">
+        <div>
+          <div class="cd-name">${esc(t.name)}</div>
+          <div class="cd-deadline${isUrgent?' urgent':''}">${t.deadline} · ${deadlineText}</div>
+        </div>
+        <button class="cd-del" data-id="${t.id}"><i class="ti ti-x"></i></button>
+      </div>
+      <div class="cd-prog-row">
+        <span>进度</span>
+        <span class="cd-prog-count">${t.done}/${t.total} ${esc(t.unit||'')}</span>
+      </div>
+      <div class="cd-prog-track"><div class="cd-prog-fill${isUrgent?' urgent':''}" style="width:${pct}%"></div></div>
+      ${isDone?'':`
+      <div class="cd-controls">
+        <input type="number" id="cd-input-${t.id}" placeholder="今天完成" min="0"/>
+        <button data-id="${t.id}">记录</button>
+        <span class="cd-pace${isUrgent?' urgent':''}">${daysLeft>0?`平均每天需完成 ${perDay} ${t.unit||''}`:remaining>0?'已到期未完成':''}</span>
+      </div>`}
+    `;
+    list.appendChild(el);
+  });
+
+  list.querySelectorAll('.cd-del').forEach(btn=>{
+    btn.addEventListener('click',()=>deleteCountdownTask(btn.dataset.id));
+  });
+  list.querySelectorAll('.cd-controls button').forEach(btn=>{
+    btn.addEventListener('click',()=>logCountdownProgress(btn.dataset.id));
+  });
+}
+
+function addCountdownTask(){
+  const name=document.getElementById('cdName').value.trim();
+  const total=parseInt(document.getElementById('cdTotal').value);
+  const unit=document.getElementById('cdUnit').value.trim();
+  const deadline=document.getElementById('cdDeadline').value;
+  if(!name||!total||!deadline) return;
+  if(!data.countdownTasks) data.countdownTasks=[];
+  data.countdownTasks.push({
+    id:Date.now().toString(36)+Math.random().toString(36).slice(2,5),
+    name,total,unit,deadline,done:0,createdDate:todayStr(),log:[]
+  });
+  document.getElementById('cdName').value='';
+  document.getElementById('cdTotal').value='';
+  document.getElementById('cdUnit').value='';
+  document.getElementById('cdDeadline').value='';
+  countdownFormOpen=false;
+  document.getElementById('countdownForm').classList.remove('open');
+  save();renderCountdownTasks();
+}
+
+function logCountdownProgress(id){
+  const input=document.getElementById('cd-input-'+id);
+  const amount=parseInt(input.value);
+  if(!amount || amount<=0) return;
+  const task=(data.countdownTasks||[]).find(t=>t.id===id);
+  if(!task) return;
+  task.done=Math.min(task.total, task.done+amount);
+  if(!task.log) task.log=[];
+  task.log.push({date:cur, amount});
+  save();renderCountdownTasks();
+}
+
+function deleteCountdownTask(id){
+  if(!confirm('删除这个限时任务？')) return;
+  data.countdownTasks=(data.countdownTasks||[]).filter(t=>t.id!==id);
+  save();renderCountdownTasks();
+}
+
+document.getElementById('addCountdownBtn').addEventListener('click',()=>{
+  countdownFormOpen=!countdownFormOpen;
+  document.getElementById('countdownForm').classList.toggle('open',countdownFormOpen);
+  if(countdownFormOpen) document.getElementById('cdName').focus();
+});
+document.getElementById('cancelCountdown').addEventListener('click',()=>{
+  countdownFormOpen=false;
+  document.getElementById('countdownForm').classList.remove('open');
+});
+document.getElementById('confirmCountdown').addEventListener('click',addCountdownTask);
+
 /* ══ VOCAB CAMERA OCR ══ */
 const OCR_WORKER_URL = 'https://morning-unit-76a9.shaokang-li.workers.dev';
 
@@ -1467,6 +1618,7 @@ function renderDay(){
   renderWeeklyTasks();
   renderVocab();
   renderNotes();
+  renderCountdownTasks();
   if(!_highlights.length) loadHighlights(); else renderHighlights();
 }
 
