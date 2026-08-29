@@ -1310,7 +1310,7 @@ function getCountdownTasks(){
 }
 
 function renderCountdownTasks(){
-  const tasks=getCountdownTasks();
+  const tasks=getCountdownTasks().filter(t=>t.done<t.total);
   const list=document.getElementById('countdownList');
   if(!list) return;
   if(!tasks.length){
@@ -1323,16 +1323,14 @@ function renderCountdownTasks(){
     const daysLeft=Math.ceil((parseD(t.deadline)-parseD(today))/(864e5));
     const remaining=Math.max(0,t.total-t.done);
     const pct=Math.min(100,Math.round(t.done/t.total*100));
-    const isDone=t.done>=t.total;
-    const isUrgent=!isDone && daysLeft<=1;
+    const isUrgent=daysLeft<=1;
     const perDay=daysLeft>0?Math.ceil(remaining/daysLeft):remaining;
 
     const el=document.createElement('div');
-    el.className='cd-item'+(isDone?' done':isUrgent?' urgent':'');
+    el.className='cd-item'+(isUrgent?' urgent':'');
 
     let deadlineText;
-    if(isDone) deadlineText='已完成';
-    else if(daysLeft<0) deadlineText=`已逾期 ${Math.abs(daysLeft)} 天`;
+    if(daysLeft<0) deadlineText=`已逾期 ${Math.abs(daysLeft)} 天`;
     else if(daysLeft===0) deadlineText='今天截止';
     else deadlineText=`还剩 ${daysLeft} 天`;
 
@@ -1349,12 +1347,11 @@ function renderCountdownTasks(){
         <span class="cd-prog-count">${t.done}/${t.total} ${esc(t.unit||'')}</span>
       </div>
       <div class="cd-prog-track"><div class="cd-prog-fill${isUrgent?' urgent':''}" style="width:${pct}%"></div></div>
-      ${isDone?'':`
       <div class="cd-controls">
         <input type="number" id="cd-input-${t.id}" placeholder="今天完成" min="0"/>
         <button data-id="${t.id}">记录</button>
         <span class="cd-pace${isUrgent?' urgent':''}">${daysLeft>0?`平均每天需完成 ${perDay} ${t.unit||''}`:remaining>0?'已到期未完成':''}</span>
-      </div>`}
+      </div>
     `;
     list.appendChild(el);
   });
@@ -1400,7 +1397,6 @@ function logCountdownProgress(id){
 }
 
 function deleteCountdownTask(id){
-  if(!confirm('删除这个限时任务？')) return;
   data.countdownTasks=(data.countdownTasks||[]).filter(t=>t.id!==id);
   save();renderCountdownTasks();
 }
