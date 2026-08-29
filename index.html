@@ -1362,8 +1362,8 @@ function doneAsOf(task, date){
 
 function renderCountdownTasks(){
   const allTasks=getCountdownTasks();
-  // show only tasks that existed by cur and were not yet complete as of cur
-  const tasks=allTasks.filter(t=> (t.createdDate||t.deadline)<=cur && doneAsOf(t,cur)<t.total );
+  // show tasks that were not yet complete as of the viewed date
+  const tasks=allTasks.filter(t=> doneAsOf(t,cur)<t.total );
   const list=document.getElementById('countdownList');
   if(!list) return;
   if(!tasks.length){
