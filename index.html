@@ -489,6 +489,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       </div>
       <div id="historyList" style="display:flex;flex-direction:column;gap:6px;max-height:400px;overflow-y:auto"></div>
     </div>
+    <div class="card">
+      <div class="card-title">限时任务历史</div>
+      <div id="countdownHistoryList" style="display:flex;flex-direction:column;gap:8px"></div>
+    </div>
   </div>
 
   <!-- ═══ DAY VIEW ═══ -->
@@ -909,6 +913,7 @@ function renderAnalytics(){
   renderBarChart();
   renderVocabStats();
   renderHistoryList();
+  renderCountdownHistory();
 }
 
 function renderVocabStats(){
@@ -966,6 +971,45 @@ function renderHistoryList(){
 }
 
 document.getElementById('historyFilter')?.addEventListener('change', renderHistoryList);
+
+function renderCountdownHistory(){
+  const list=document.getElementById('countdownHistoryList');
+  if(!list) return;
+  const tasks=getCountdownTasks();
+  if(!tasks.length){
+    list.innerHTML=`<div style="text-align:center;padding:1.5rem;font-size:12px;color:var(--faint);border:0.5px dashed var(--border);border-radius:var(--r)">还没有限时任务记录</div>`;
+    return;
+  }
+  const today=todayStr();
+  // most recent first (by deadline desc, or by createdDate)
+  const sorted=[...tasks].sort((a,b)=> (b.createdDate||'').localeCompare(a.createdDate||''));
+
+  list.innerHTML='';
+  sorted.forEach(t=>{
+    const isDone=t.done>=t.total;
+    const daysLeft=Math.ceil((parseD(t.deadline)-parseD(today))/(864e5));
+    const pct=Math.min(100,Math.round(t.done/t.total*100));
+    let statusText, statusColor;
+    if(isDone){ statusText='已完成'; statusColor='var(--green)'; }
+    else if(daysLeft<0){ statusText=`逾期 ${Math.abs(daysLeft)} 天`; statusColor='#C0392B'; }
+    else { statusText=`进行中 · 还剩${daysLeft}天`; statusColor='var(--muted)'; }
+
+    const el=document.createElement('div');
+    el.className='cd-item'+(isDone?' done':'');
+    el.style.padding='0.75rem 0.9rem';
+    el.innerHTML=`
+      <div class="cd-top" style="margin-bottom:6px">
+        <div>
+          <div class="cd-name" style="font-size:13px">${esc(t.name)}</div>
+          <div class="cd-deadline" style="color:${statusColor}">${t.deadline} · ${statusText}</div>
+        </div>
+        <span style="font-size:11px;font-family:'DM Mono',monospace;color:var(--muted)">${t.done}/${t.total} ${esc(t.unit||'')}</span>
+      </div>
+      <div class="cd-prog-track" style="margin-bottom:0"><div class="cd-prog-fill" style="width:${pct}%;background:${isDone?'var(--green)':'#8BBF55'}"></div></div>
+    `;
+    list.appendChild(el);
+  });
+}
 
 function renderHeatmap(){
   document.getElementById('hmYear').textContent=hmYear;
@@ -1309,22 +1353,32 @@ function getCountdownTasks(){
   return data.countdownTasks || [];
 }
 
+// how much progress had accumulated by a given date (inclusive)
+function doneAsOf(task, date){
+  const log=task.log||[];
+  const sum=log.filter(l=>l.date<=date).reduce((a,l)=>a+l.amount,0);
+  return Math.min(task.total, sum);
+}
+
 function renderCountdownTasks(){
-  const tasks=getCountdownTasks().filter(t=>t.done<t.total);
+  const allTasks=getCountdownTasks();
+  // show only tasks that existed by cur and were not yet complete as of cur
+  const tasks=allTasks.filter(t=> (t.createdDate||t.deadline)<=cur && doneAsOf(t,cur)<t.total );
   const list=document.getElementById('countdownList');
   if(!list) return;
   if(!tasks.length){
     list.innerHTML=`<div style="text-align:center;padding:1rem;font-size:12px;color:var(--faint);border:0.5px dashed var(--border);border-radius:var(--r)">没有进行中的限时任务</div>`;
     return;
   }
-  const today=todayStr();
   list.innerHTML='';
   tasks.forEach(t=>{
-    const daysLeft=Math.ceil((parseD(t.deadline)-parseD(today))/(864e5));
-    const remaining=Math.max(0,t.total-t.done);
-    const pct=Math.min(100,Math.round(t.done/t.total*100));
+    const doneNow=doneAsOf(t,cur);
+    const daysLeft=Math.ceil((parseD(t.deadline)-parseD(cur))/(864e5));
+    const remaining=Math.max(0,t.total-doneNow);
+    const pct=Math.min(100,Math.round(doneNow/t.total*100));
     const isUrgent=daysLeft<=1;
     const perDay=daysLeft>0?Math.ceil(remaining/daysLeft):remaining;
+    const isPast=cur<todayStr();
 
     const el=document.createElement('div');
     el.className='cd-item'+(isUrgent?' urgent':'');
@@ -1344,11 +1398,11 @@ function renderCountdownTasks(){
       </div>
       <div class="cd-prog-row">
         <span>进度</span>
-        <span class="cd-prog-count">${t.done}/${t.total} ${esc(t.unit||'')}</span>
+        <span class="cd-prog-count">${doneNow}/${t.total} ${esc(t.unit||'')}</span>
       </div>
       <div class="cd-prog-track"><div class="cd-prog-fill${isUrgent?' urgent':''}" style="width:${pct}%"></div></div>
       <div class="cd-controls">
-        <input type="number" id="cd-input-${t.id}" placeholder="今天完成" min="0"/>
+        <input type="number" id="cd-input-${t.id}" placeholder="${isPast?'补记当天':'今天完成'}" min="0"/>
         <button data-id="${t.id}">记录</button>
         <span class="cd-pace${isUrgent?' urgent':''}">${daysLeft>0?`平均每天需完成 ${perDay} ${t.unit||''}`:remaining>0?'已到期未完成':''}</span>
       </div>
