@@ -558,7 +558,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
             <div style="display:flex;gap:6px">
               <button id="vocabCameraBtn" style="background:none;border:0.5px solid var(--border-md);color:var(--muted);border-radius:8px;padding:5px 9px;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:4px"><i class="ti ti-camera" style="font-size:12px"></i> 拍照识别</button>
               <input type="file" id="vocabCameraInput" accept="image/*" capture="environment" style="display:none"/>
-              <button class="add-btn" id="addVocabBtn" style="background:var(--green);border:none;color:#fff;border-radius:8px;padding:5px 10px;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:4px"><i class="ti ti-plus" style="font-size:12px"></i> 添加</button>
+              <button id="bulkVocabBtn" style="background:none;border:0.5px solid var(--border-md);color:var(--muted);border-radius:8px;padding:5px 9px;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:4px"><i class="ti ti-list" style="font-size:12px"></i> 批量</button>
+              <button class="add-btn" id="addVocabBtn"style="background:var(--green);border:none;color:#fff;border-radius:8px;padding:5px 10px;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:4px"><i class="ti ti-plus" style="font-size:12px"></i> 添加</button>
             </div>
           </div>
           <div id="vocabOcrStatus" style="display:none;align-items:flex-start;gap:8px;padding:9px 12px;margin-bottom:10px;border-radius:var(--r);background:var(--surface2);font-size:12px;color:var(--muted);word-break:break-all;line-height:1.5">
@@ -572,13 +573,32 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
             <button class="btn-ok" id="confirmVocab">添加</button>
             <button class="btn-no" id="cancelVocab">取消</button>
           </div>
+          <div id="bulkVocabForm" style="display:none;flex-direction:column;gap:8px;margin-bottom:10px">
+            <textarea id="bulkVocabText" rows="6" placeholder="每行一个：单词 释义&#10;例如：&#10;ephemeral 短暂的&#10;gezellig, 舒适惬意的&#10;(分隔符可用 空格 / 逗号 / 冒号 / - / Tab)" style="width:100%;box-sizing:border-box;padding:8px 10px;border:0.5px solid var(--border-md);border-radius:var(--r);font-family:'DM Sans',sans-serif;font-size:13px;background:var(--surface);color:var(--text);resize:vertical"></textarea>
+            <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+              <select id="bulkVocabLang"><option value="en">EN</option><option value="nl">NL</option></select>
+              <button class="btn-ok" id="confirmBulkVocab">批量添加</button>
+              <button class="btn-no" id="cancelBulkVocab">取消</button>
+              <span id="bulkVocabMsg" style="font-size:11px;color:var(--muted)"></span>
+            </div>
+          </div>
           <div id="vocabList" style="display:flex;flex-direction:column;gap:5px"></div>
         </div>
 
         <div class="card">
           <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem">
             <span>笔记本</span>
-            <button class="add-btn" id="addNoteBtn" style="background:var(--green);border:none;color:#fff;border-radius:8px;padding:5px 10px;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:4px"><i class="ti ti-plus" style="font-size:12px"></i> 添加</button>
+            <div style="display:flex;gap:6px">
+              <button id="bulkNoteBtn" style="background:none;border:0.5px solid var(--border-md);color:var(--muted);border-radius:8px;padding:5px 9px;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:4px"><i class="ti ti-list" style="font-size:12px"></i> 批量</button>
+              <button class="add-btn" id="addNoteBtn" style="background:var(--green);border:none;color:#fff;border-radius:8px;padding:5px 10px;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:4px"><i class="ti ti-plus" style="font-size:12px"></i> 添加</button>
+            </div>
+          </div>
+          <div id="bulkNoteForm" style="display:none;flex-direction:column;gap:8px;margin-bottom:10px">
+            <textarea id="bulkNoteText" rows="6" placeholder="每行一条笔记" style="width:100%;box-sizing:border-box;padding:8px 10px;border:0.5px solid var(--border-md);border-radius:var(--r);font-family:'DM Sans',sans-serif;font-size:13px;background:var(--surface);color:var(--text);resize:vertical"></textarea>
+            <div style="display:flex;gap:6px;align-items:center">
+              <button class="btn-ok" id="confirmBulkNote">批量添加</button>
+              <button class="btn-no" id="cancelBulkNote">取消</button>
+            </div>
           </div>
           <div id="noteForm" class="add-form" style="margin-bottom:10px">
             <input type="text" id="newNoteText" placeholder="记点什么…" maxlength="200" style="flex:1;min-width:160px"/>
@@ -1347,6 +1367,67 @@ document.getElementById('cancelNote').addEventListener('click',()=>{
 });
 document.getElementById('confirmNote').addEventListener('click',addNote);
 document.getElementById('newNoteText').addEventListener('keydown',e=>{if(e.key==='Enter')addNote();});
+
+/* ══ BULK INPUT ══ */
+function toggleBulk(formId,textId){
+  const f=document.getElementById(formId);
+  const open=f.style.display!=='flex';
+  f.style.display=open?'flex':'none';
+  if(open) document.getElementById(textId).focus();
+}
+function parseVocabLine(line){
+  line=line.trim();
+  if(!line) return null;
+  const m=line.match(/^(.+?)\s*(?:\t|[:：,，;；=]|\s[-–—]\s|\s{1,})\s*(.+)$/);
+  if(!m) return null;
+  const word=m[1].trim(), meaning=m[2].trim();
+  return (word&&meaning)?{word,meaning}:null;
+}
+function bulkAddVocab(){
+  const ta=document.getElementById('bulkVocabText');
+  const lang=document.getElementById('bulkVocabLang').value;
+  const lines=ta.value.split(/\r?\n/);
+  if(!data.vocab) data.vocab=[];
+  let ok=0; const bad=[];
+  lines.forEach(l=>{
+    if(!l.trim()) return;
+    const p=parseVocabLine(l);
+    if(!p){ bad.push(l); return; }
+    data.vocab.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,6)+ok,word:p.word,meaning:p.meaning,lang,date:cur});
+    ok++;
+  });
+  ta.value=bad.join('\n');
+  document.getElementById('bulkVocabMsg').textContent=`已添加 ${ok} 条`+(bad.length?`，${bad.length} 行无法识别（已保留在输入框）`:'');
+  if(ok){ save();renderVocab();renderHighlights(); }
+  if(!bad.length){
+    setTimeout(()=>{ document.getElementById('bulkVocabForm').style.display='none'; document.getElementById('bulkVocabMsg').textContent=''; },900);
+  }
+}
+function bulkAddNotes(){
+  const ta=document.getElementById('bulkNoteText');
+  const lines=ta.value.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+  if(!lines.length) return;
+  if(!data.notes) data.notes=[];
+  lines.forEach((text,i)=>{
+    data.notes.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,6)+i,text,date:cur});
+  });
+  ta.value='';
+  document.getElementById('bulkNoteForm').style.display='none';
+  save();renderNotes();
+}
+document.getElementById('bulkVocabBtn').addEventListener('click',()=>toggleBulk('bulkVocabForm','bulkVocabText'));
+document.getElementById('cancelBulkVocab').addEventListener('click',()=>{
+  document.getElementById('bulkVocabForm').style.display='none';
+  document.getElementById('bulkVocabText').value='';
+  document.getElementById('bulkVocabMsg').textContent='';
+});
+document.getElementById('confirmBulkVocab').addEventListener('click',bulkAddVocab);
+document.getElementById('bulkNoteBtn').addEventListener('click',()=>toggleBulk('bulkNoteForm','bulkNoteText'));
+document.getElementById('cancelBulkNote').addEventListener('click',()=>{
+  document.getElementById('bulkNoteForm').style.display='none';
+  document.getElementById('bulkNoteText').value='';
+});
+document.getElementById('confirmBulkNote').addEventListener('click',bulkAddNotes);
 
 /* ══ COUNTDOWN TASKS ══ */
 let countdownFormOpen=false;
