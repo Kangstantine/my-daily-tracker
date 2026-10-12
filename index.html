@@ -221,6 +221,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .cd-deadline.urgent{color:#C0392B;font-weight:500}
 .cd-del{background:none;border:none;cursor:pointer;color:var(--faint);padding:2px;font-size:13px;flex-shrink:0}
 .cd-del:hover{color:#E24B4A}
+.cd-edit{background:none;border:none;cursor:pointer;color:var(--faint);padding:2px 4px;font-size:13px}
+.cd-edit:hover{color:var(--green)}
 .cd-prog-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;font-size:12px}
 .cd-prog-count{font-family:'DM Mono',monospace;font-weight:600;color:var(--text)}
 .cd-prog-track{height:6px;background:var(--surface2);border-radius:3px;overflow:hidden;margin-bottom:8px}
@@ -1394,7 +1396,10 @@ function renderCountdownTasks(){
           <div class="cd-name">${esc(t.name)}</div>
           <div class="cd-deadline${isUrgent?' urgent':''}">${t.deadline} · ${deadlineText}</div>
         </div>
-        <button class="cd-del" data-id="${t.id}"><i class="ti ti-x"></i></button>
+        <div style="display:flex;gap:2px;flex-shrink:0">
+          <button class="cd-edit" data-id="${t.id}" title="编辑"><i class="ti ti-pencil"></i></button>
+          <button class="cd-del" data-id="${t.id}" title="删除"><i class="ti ti-x"></i></button>
+        </div>
       </div>
       <div class="cd-prog-row">
         <span>进度</span>
@@ -1410,6 +1415,9 @@ function renderCountdownTasks(){
     list.appendChild(el);
   });
 
+  list.querySelectorAll('.cd-edit').forEach(btn=>{
+    btn.addEventListener('click',()=>startEditCountdown(btn.dataset.id));
+  });
   list.querySelectorAll('.cd-del').forEach(btn=>{
     btn.addEventListener('click',()=>deleteCountdownTask(btn.dataset.id));
   });
@@ -1425,10 +1433,17 @@ function addCountdownTask(){
   const deadline=document.getElementById('cdDeadline').value;
   if(!name||!total||!deadline) return;
   if(!data.countdownTasks) data.countdownTasks=[];
-  data.countdownTasks.push({
-    id:Date.now().toString(36)+Math.random().toString(36).slice(2,5),
-    name,total,unit,deadline,done:0,createdDate:todayStr(),log:[]
-  });
+  if(editingCdId){
+    const t=data.countdownTasks.find(x=>x.id===editingCdId);
+    if(t){ t.name=name; t.total=total; t.unit=unit; t.deadline=deadline; t.done=Math.min(t.done||0,total); }
+    editingCdId=null;
+    document.getElementById('confirmCountdown').textContent='添加';
+  } else {
+    data.countdownTasks.push({
+      id:Date.now().toString(36)+Math.random().toString(36).slice(2,5),
+      name,total,unit,deadline,done:0,createdDate:todayStr(),log:[]
+    });
+  }
   document.getElementById('cdName').value='';
   document.getElementById('cdTotal').value='';
   document.getElementById('cdUnit').value='';
@@ -1450,6 +1465,22 @@ function logCountdownProgress(id){
   save();renderCountdownTasks();
 }
 
+let editingCdId=null;
+function startEditCountdown(id){
+  const t=(data.countdownTasks||[]).find(x=>x.id===id);
+  if(!t) return;
+  editingCdId=id;
+  document.getElementById('cdName').value=t.name;
+  document.getElementById('cdTotal').value=t.total;
+  document.getElementById('cdUnit').value=t.unit||'';
+  document.getElementById('cdDeadline').value=t.deadline;
+  document.getElementById('confirmCountdown').textContent='保存';
+  countdownFormOpen=true;
+  const f=document.getElementById('countdownForm');
+  f.classList.add('open');
+  f.scrollIntoView({behavior:'smooth',block:'center'});
+  document.getElementById('cdName').focus();
+}
 function deleteCountdownTask(id){
   data.countdownTasks=(data.countdownTasks||[]).filter(t=>t.id!==id);
   save();renderCountdownTasks();
@@ -1462,6 +1493,9 @@ document.getElementById('addCountdownBtn').addEventListener('click',()=>{
 });
 document.getElementById('cancelCountdown').addEventListener('click',()=>{
   countdownFormOpen=false;
+  editingCdId=null;
+  document.getElementById('confirmCountdown').textContent='添加';
+  ['cdName','cdTotal','cdUnit','cdDeadline'].forEach(i=>document.getElementById(i).value='');
   document.getElementById('countdownForm').classList.remove('open');
 });
 document.getElementById('confirmCountdown').addEventListener('click',addCountdownTask);
