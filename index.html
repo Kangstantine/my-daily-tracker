@@ -558,7 +558,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
             <div style="display:flex;gap:6px">
               <button id="vocabCameraBtn" style="background:none;border:0.5px solid var(--border-md);color:var(--muted);border-radius:8px;padding:5px 9px;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:4px"><i class="ti ti-camera" style="font-size:12px"></i> 拍照识别</button>
               <input type="file" id="vocabCameraInput" accept="image/*" capture="environment" style="display:none"/>
-              <button id="bulkVocabBtn" style="background:none;border:0.5px solid var(--border-md);color:var(--muted);border-radius:8px;padding:5px 9px;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:4px"><i class="ti ti-list" style="font-size:12px"></i> 批量</button>
+              <button id="quizVocabBtn" style="background:none;border:0.5px solid var(--border-md);color:var(--muted);border-radius:8px;padding:5px 9px;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:4px"><i class="ti ti-school" style="font-size:12px"></i> 测验</button>
+              <button id="bulkVocabBtn"style="background:none;border:0.5px solid var(--border-md);color:var(--muted);border-radius:8px;padding:5px 9px;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:4px"><i class="ti ti-list" style="font-size:12px"></i> 批量</button>
               <button class="add-btn" id="addVocabBtn"style="background:var(--green);border:none;color:#fff;border-radius:8px;padding:5px 10px;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:4px"><i class="ti ti-plus" style="font-size:12px"></i> 添加</button>
             </div>
           </div>
@@ -1431,6 +1432,169 @@ document.getElementById('cancelBulkNote').addEventListener('click',()=>{
   document.getElementById('bulkNoteText').value='';
 });
 document.getElementById('confirmBulkNote').addEventListener('click',bulkAddNotes);
+
+/* ══ VOCAB QUIZ ══ */
+const MASTER_STREAK=3, MASTER_ACC=0.8;
+let quiz=null;
+function quizBody(){
+  let o=document.getElementById('quizOverlay');
+  if(!o){
+    o=document.createElement('div');
+    o.id='quizOverlay';
+    o.className='modal-overlay';
+    o.innerHTML='<div class="modal" id="quizBody" style="max-height:90vh;overflow-y:auto"></div>';
+    document.body.appendChild(o);
+    o.addEventListener('click',e=>{ if(e.target===o) closeQuiz(); });
+  }
+  return document.getElementById('quizBody');
+}
+function openQuiz(){
+  quizBody();
+  document.getElementById('quizOverlay').classList.add('open');
+  renderQuizSetup();
+}
+function closeQuiz(){
+  const o=document.getElementById('quizOverlay');
+  if(o) o.classList.remove('open');
+  quiz=null;
+  renderVocab();renderHighlights();
+}
+function quizAcc(v){ const t=(v.right||0)+(v.wrong||0); return t?(v.right||0)/t:0; }
+function renderQuizSetup(){
+  const all=getAllVocab();
+  const b=quizBody();
+  if(!all.length){
+    b.innerHTML=`<div class="modal-title">生词测验</div><div style="font-size:13px;color:var(--muted)">生词本还是空的，先添加一些单词吧。</div><div class="modal-btns"><button class="modal-cancel" id="quizClose">关闭</button></div>`;
+    document.getElementById('quizClose').onclick=closeQuiz;
+    return;
+  }
+  b.innerHTML=`
+    <div class="modal-title">生词测验</div>
+    <div style="font-size:12px;color:var(--muted);line-height:1.6">共 ${all.length} 个生词。连续答对 ${MASTER_STREAK} 次且正确率 ≥ ${MASTER_ACC*100}% 的词，会在测验结束后建议删除（由你确认）。</div>
+    <div><label>范围</label><select id="qScope"><option value="all">全部生词</option><option value="week">最近 7 天添加</option><option value="wrong">答错过的词</option><option value="new">还没测过的词</option></select></div>
+    <div><label>语言</label><select id="qLang"><option value="all">EN + NL</option><option value="en">只有 EN</option><option value="nl">只有 NL</option></select></div>
+    <div><label>方式</label><select id="qDir"><option value="w2m">看单词 → 想释义</option><option value="m2w">看释义 → 想单词</option><option value="mix">随机混合</option></select></div>
+    <div><label>题数</label><select id="qCount"><option value="10">10 题</option><option value="20">20 题</option><option value="50">50 题</option><option value="9999">全部</option></select></div>
+    <div id="qMsg" style="font-size:12px;color:#E24B4A;display:none"></div>
+    <div class="modal-btns"><button class="modal-cancel" id="quizClose">取消</button><button class="modal-save" id="quizStart">开始</button></div>`;
+  document.getElementById('quizClose').onclick=closeQuiz;
+  document.getElementById('quizStart').onclick=startQuiz;
+}
+function startQuiz(){
+  const scope=document.getElementById('qScope').value;
+  const lang=document.getElementById('qLang').value;
+  const dir=document.getElementById('qDir').value;
+  const n=parseInt(document.getElementById('qCount').value);
+  const weekAgo=addDays(todayStr(),-6);
+  let pool=getAllVocab().filter(v=>{
+    if(lang!=='all' && v.lang!==lang) return false;
+    if(scope==='week') return v.date>=weekAgo;
+    if(scope==='wrong') return (v.wrong||0)>0;
+    if(scope==='new') return !((v.right||0)+(v.wrong||0));
+    return true;
+  });
+  if(!pool.length){
+    const m=document.getElementById('qMsg');
+    m.textContent='这个范围里没有符合条件的词，换一个范围试试。';
+    m.style.display='block';
+    return;
+  }
+  // weakest first (low streak), random tiebreak
+  pool=pool.map(v=>({v,k:(v.streak||0)+Math.random()})).sort((a,b)=>a.k-b.k).map(x=>x.v).slice(0,n);
+  // shuffle the chosen set
+  for(let i=pool.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[pool[i],pool[j]]=[pool[j],pool[i]];}
+  quiz={
+    items:pool.map(v=>({id:v.id,dir:dir==='mix'?(Math.random()<0.5?'w2m':'m2w'):dir})),
+    i:0, revealed:false, results:[]
+  };
+  renderQuizCard();
+}
+function renderQuizCard(){
+  const b=quizBody();
+  const it=quiz.items[quiz.i];
+  const v=getAllVocab().find(x=>x.id===it.id);
+  if(!v){ quiz.i++; return quiz.i>=quiz.items.length?renderQuizResult():renderQuizCard(); }
+  const q=it.dir==='w2m'?v.word:v.meaning;
+  const a=it.dir==='w2m'?v.meaning:v.word;
+  const pct=Math.round(quiz.i/quiz.items.length*100);
+  b.innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--muted)">
+      <span>${quiz.i+1} / ${quiz.items.length}</span>
+      <span class="vocab-lang ${v.lang}">${v.lang.toUpperCase()}</span>
+    </div>
+    <div class="cd-prog-track"><div class="cd-prog-fill" style="width:${pct}%"></div></div>
+    <div style="text-align:center;padding:1.5rem 0.5rem;min-height:90px;display:flex;flex-direction:column;justify-content:center;gap:14px">
+      <div style="font-size:22px;font-weight:600;word-break:break-word">${esc(q)}</div>
+      ${quiz.revealed?`<div style="font-size:17px;color:var(--green);word-break:break-word;border-top:0.5px dashed var(--border-md);padding-top:14px">${esc(a)}</div>`:''}
+    </div>
+    <div class="modal-btns" style="justify-content:center">
+      ${quiz.revealed
+        ?`<button class="modal-cancel" id="qWrong" style="color:#E24B4A;border-color:#E24B4A">✗ 忘了</button><button class="modal-save" id="qRight">✓ 记得</button>`
+        :`<button class="modal-save" id="qShow">显示答案</button>`}
+    </div>
+    <div style="text-align:center"><button class="modal-cancel" id="quizClose" style="border:none;font-size:12px">结束测验</button></div>`;
+  document.getElementById('quizClose').onclick=()=>{ quiz.results.length?renderQuizResult():closeQuiz(); };
+  if(quiz.revealed){
+    document.getElementById('qRight').onclick=()=>answerQuiz(true);
+    document.getElementById('qWrong').onclick=()=>answerQuiz(false);
+  } else {
+    document.getElementById('qShow').onclick=()=>{ quiz.revealed=true; renderQuizCard(); };
+  }
+}
+function answerQuiz(ok){
+  const it=quiz.items[quiz.i];
+  const v=getAllVocab().find(x=>x.id===it.id);
+  if(v){
+    v.right=(v.right||0)+(ok?1:0);
+    v.wrong=(v.wrong||0)+(ok?0:1);
+    v.streak=ok?(v.streak||0)+1:0;
+    v.lastQuiz=todayStr();
+  }
+  quiz.results.push({id:it.id,ok});
+  save();
+  quiz.i++; quiz.revealed=false;
+  if(quiz.i>=quiz.items.length) renderQuizResult(); else renderQuizCard();
+}
+function renderQuizResult(){
+  const b=quizBody();
+  const res=quiz.results;
+  const right=res.filter(r=>r.ok).length;
+  const acc=res.length?Math.round(right/res.length*100):0;
+  const vocab=getAllVocab();
+  const byId=id=>vocab.find(v=>v.id===id);
+  const mastered=res.filter(r=>r.ok).map(r=>byId(r.id)).filter(v=>v && (v.streak||0)>=MASTER_STREAK && quizAcc(v)>=MASTER_ACC);
+  const missed=res.filter(r=>!r.ok).map(r=>byId(r.id)).filter(Boolean);
+  const row=(v,extra)=>`<div class="vocab-item" style="padding:7px 10px">${extra||''}<span class="vocab-word">${esc(v.word)}</span><span class="vocab-meaning">${esc(v.meaning)}</span></div>`;
+  b.innerHTML=`
+    <div class="modal-title">测验完成</div>
+    <div style="text-align:center;padding:4px 0">
+      <div style="font-size:34px;font-weight:600;color:var(--green)">${acc}%</div>
+      <div style="font-size:12px;color:var(--muted)">答对 ${right} / ${res.length}</div>
+    </div>
+    ${mastered.length?`
+      <div>
+        <div style="font-size:12px;font-weight:600;margin-bottom:6px">🎓 已熟记，可以删除（${mastered.length}）</div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:6px">连续答对 ≥ ${MASTER_STREAK} 次且正确率 ≥ ${MASTER_ACC*100}%。取消勾选的会保留。</div>
+        <div style="display:flex;flex-direction:column;gap:5px">${mastered.map(v=>row(v,`<input type="checkbox" class="qDel" data-id="${v.id}" checked style="width:auto;flex-shrink:0"/>`)).join('')}</div>
+      </div>`:''}
+    ${missed.length?`
+      <div>
+        <div style="font-size:12px;font-weight:600;margin-bottom:6px">需要再记（${missed.length}）</div>
+        <div style="display:flex;flex-direction:column;gap:5px">${missed.map(v=>row(v)).join('')}</div>
+      </div>`:''}
+    <div class="modal-btns">
+      <button class="modal-cancel" id="quizClose">${mastered.length?'都保留':'关闭'}</button>
+      ${mastered.length?`<button class="modal-save" id="quizDelete">删除选中</button>`:''}
+    </div>`;
+  document.getElementById('quizClose').onclick=closeQuiz;
+  const del=document.getElementById('quizDelete');
+  if(del) del.onclick=()=>{
+    const ids=[...document.querySelectorAll('.qDel:checked')].map(c=>c.dataset.id);
+    if(ids.length){ data.vocab=(data.vocab||[]).filter(v=>!ids.includes(v.id)); save(); }
+    closeQuiz();
+  };
+}
+document.getElementById('quizVocabBtn').addEventListener('click',openQuiz);
 
 /* ══ COUNTDOWN TASKS ══ */
 let countdownFormOpen=false;
