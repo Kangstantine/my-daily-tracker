@@ -205,7 +205,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .mini-cal-label{font-size:11px;font-weight:600;color:var(--muted);letter-spacing:0.07em;text-transform:uppercase;margin-bottom:8px}
 
 /* ── VOCAB ── */
-.vocab-item{display:flex;align-items:center;gap:8px;padding:9px 12px;border:0.5px solid var(--border);border-radius:var(--r);background:var(--surface)}
+.vocab-item{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;padding:9px 12px;border:0.5px solid var(--border);border-radius:var(--r);background:var(--surface)}
 .note-item{display:flex;align-items:flex-start;gap:8px;padding:9px 12px;border:0.5px solid var(--border);border-radius:var(--r);background:var(--surface)}
 .note-text{flex:1;font-size:12px;color:var(--text);line-height:1.5;word-break:break-word}
 .note-del{background:none;border:none;cursor:pointer;color:var(--faint);padding:2px;font-size:12px;flex-shrink:0}
@@ -1270,7 +1270,7 @@ function renderVocab(){
   recent.forEach(v=>{
     const el=document.createElement('div');
     el.className='vocab-item';
-    el.innerHTML=`<span class="vocab-word">${esc(v.word)}</span><span class="vocab-meaning">${esc(v.meaning)}</span><span class="vocab-lang ${v.lang}">${v.lang.toUpperCase()}</span><button class="vocab-del" data-id="${v.id}"><i class="ti ti-x"></i></button>`;
+    el.innerHTML=`<span class="vocab-word">${esc(v.word)}</span><span class="vocab-meaning">${esc(v.meaning)}</span>${masteryHTML(v)}<span class="vocab-lang ${v.lang}">${v.lang.toUpperCase()}</span><button class="vocab-del" data-id="${v.id}"><i class="ti ti-x"></i></button>`;
     list.appendChild(el);
   });
   list.querySelectorAll('.vocab-del').forEach(btn=>{
@@ -1434,8 +1434,25 @@ document.getElementById('cancelBulkNote').addEventListener('click',()=>{
 document.getElementById('confirmBulkNote').addEventListener('click',bulkAddNotes);
 
 /* ══ VOCAB QUIZ ══ */
-const MASTER_STREAK=3, MASTER_ACC=0.8;
+var MASTER_STREAK=3, MASTER_ACC=0.8;
 let quiz=null;
+function vocabLevel(v){
+  const tot=(v.right||0)+(v.wrong||0);
+  const st=v.streak||0;
+  if(!tot) return {key:'new',label:'未测',color:'#9a9a94'};
+  if(st>=MASTER_STREAK && quizAcc(v)>=MASTER_ACC) return {key:'mastered',label:'已熟记',color:'#3B6D11'};
+  if(st===0) return {key:'weak',label:'需加强',color:'#E24B4A'};
+  return {key:'learning',label:'学习中',color:'#D98E04'};
+}
+function masteryHTML(v){
+  const lv=vocabLevel(v);
+  const tot=(v.right||0)+(v.wrong||0);
+  const st=Math.min(v.streak||0,MASTER_STREAK);
+  let dots='';
+  for(let i=0;i<MASTER_STREAK;i++) dots+=`<span style="width:6px;height:6px;border-radius:50%;display:inline-block;background:${i<st?lv.color:'transparent'};border:1px solid ${i<st?lv.color:'var(--border-md)'}"></span>`;
+  const tip=tot?`答对 ${v.right||0} / ${tot} 次，当前连续答对 ${v.streak||0} 次`:'还没测过';
+  return `<span title="${tip}" style="display:inline-flex;align-items:center;gap:4px;flex-shrink:0;font-size:10px;color:${lv.color}"><span style="display:inline-flex;gap:2px">${dots}</span>${lv.label}${tot?` <span style="color:var(--faint)">${v.right||0}/${tot}</span>`:''}</span>`;
+}
 function quizBody(){
   let o=document.getElementById('quizOverlay');
   if(!o){
@@ -1471,6 +1488,7 @@ function renderQuizSetup(){
   b.innerHTML=`
     <div class="modal-title">生词测验</div>
     <div style="font-size:12px;color:var(--muted);line-height:1.6">共 ${all.length} 个生词。连续答对 ${MASTER_STREAK} 次且正确率 ≥ ${MASTER_ACC*100}% 的词，会在测验结束后建议删除（由你确认）。</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;font-size:11px">${['new','weak','learning','mastered'].map(k=>{const n=all.filter(v=>vocabLevel(v).key===k).length;const lv=vocabLevel(k==='new'?{}:k==='weak'?{right:0,wrong:1,streak:0}:k==='learning'?{right:1,wrong:0,streak:1}:{right:MASTER_STREAK,wrong:0,streak:MASTER_STREAK});return `<span style="padding:3px 8px;border-radius:99px;border:0.5px solid ${lv.color};color:${lv.color}">${lv.label} ${n}</span>`}).join('')}</div>
     <div><label>范围</label><select id="qScope"><option value="all">全部生词</option><option value="week">最近 7 天添加</option><option value="wrong">答错过的词</option><option value="new">还没测过的词</option></select></div>
     <div><label>语言</label><select id="qLang"><option value="all">EN + NL</option><option value="en">只有 EN</option><option value="nl">只有 NL</option></select></div>
     <div><label>方式</label><select id="qDir"><option value="w2m">看单词 → 想释义</option><option value="m2w">看释义 → 想单词</option><option value="mix">随机混合</option></select></div>
