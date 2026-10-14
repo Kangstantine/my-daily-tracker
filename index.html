@@ -477,8 +477,23 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       <div style="display:flex;gap:6px;margin-top:8px;justify-content:center" id="barLabels"></div>
     </div>
     <div class="card">
-      <div class="card-title">生词本统计</div>
+      <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem">
+        <span>生词本统计</span>
+        <button id="analyticsQuizBtn" style="background:var(--green);border:none;color:#fff;border-radius:8px;padding:5px 10px;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:4px"><i class="ti ti-school" style="font-size:12px"></i> 开始测验</button>
+      </div>
       <div class="grid3" id="vocabStats"></div>
+      <div id="masterySummary" style="margin-top:12px"></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin:14px 0 8px">
+        <span style="font-size:12px;font-weight:600;color:var(--muted)">记忆程度</span>
+        <select id="masteryFilter" style="border:0.5px solid var(--border-md);border-radius:8px;padding:5px 8px;font-size:11px;background:var(--surface);color:var(--text);font-family:'DM Sans',sans-serif;cursor:pointer">
+          <option value="all">全部</option>
+          <option value="weak">需加强</option>
+          <option value="learning">学习中</option>
+          <option value="new">未测</option>
+          <option value="mastered">已熟记</option>
+        </select>
+      </div>
+      <div id="masteryList" style="display:flex;flex-direction:column;gap:5px;max-height:360px;overflow-y:auto"></div>
     </div>
     <div class="card">
       <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem">
@@ -558,7 +573,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
             <div style="display:flex;gap:6px">
               <button id="vocabCameraBtn" style="background:none;border:0.5px solid var(--border-md);color:var(--muted);border-radius:8px;padding:5px 9px;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:4px"><i class="ti ti-camera" style="font-size:12px"></i> 拍照识别</button>
               <input type="file" id="vocabCameraInput" accept="image/*" capture="environment" style="display:none"/>
-              <button id="quizVocabBtn" style="background:none;border:0.5px solid var(--border-md);color:var(--muted);border-radius:8px;padding:5px 9px;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:4px"><i class="ti ti-school" style="font-size:12px"></i> 测验</button>
               <button id="bulkVocabBtn"style="background:none;border:0.5px solid var(--border-md);color:var(--muted);border-radius:8px;padding:5px 9px;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:4px"><i class="ti ti-list" style="font-size:12px"></i> 批量</button>
               <button class="add-btn" id="addVocabBtn"style="background:var(--green);border:none;color:#fff;border-radius:8px;padding:5px 10px;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:4px"><i class="ti ti-plus" style="font-size:12px"></i> 添加</button>
             </div>
@@ -935,6 +949,7 @@ function renderAnalytics(){
   renderHeatmap();
   renderBarChart();
   renderVocabStats();
+  renderMastery();
   renderHistoryList();
   renderCountdownHistory();
 }
@@ -949,6 +964,31 @@ function renderVocabStats(){
     <div class="stat"><div class="stat-val">${vocab.length}</div><div class="stat-lbl">总计</div></div>
     <div class="stat"><div class="stat-val" style="color:#0C447C">${enCount}</div><div class="stat-lbl">英语</div></div>
     <div class="stat"><div class="stat-val" style="color:#633806">${nlCount}</div><div class="stat-lbl">荷兰语</div></div>`;
+}
+
+function renderMastery(){
+  const vocab=getAllVocab();
+  const sum=document.getElementById('masterySummary');
+  const list=document.getElementById('masteryList');
+  if(!sum||!list) return;
+  const keys=[['weak','需加强','#E24B4A'],['learning','学习中','#D98E04'],['new','未测','#9a9a94'],['mastered','已熟记','#3B6D11']];
+  const cnt={}; vocab.forEach(v=>{const k=vocabLevel(v).key;cnt[k]=(cnt[k]||0)+1;});
+  const total=vocab.length||1;
+  const tested=vocab.filter(v=>(v.right||0)+(v.wrong||0)>0);
+  const R=tested.reduce((a,v)=>a+(v.right||0),0), T=tested.reduce((a,v)=>a+(v.right||0)+(v.wrong||0),0);
+  sum.innerHTML=`
+    <div style="display:flex;height:8px;border-radius:99px;overflow:hidden;background:var(--surface2)">${keys.map(([k,,c])=>`<div style="width:${(cnt[k]||0)/total*100}%;background:${c}"></div>`).join('')}</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px;font-size:11px">${keys.map(([k,l,c])=>`<span style="color:${c}">● ${l} ${cnt[k]||0}</span>`).join('')}</div>
+    <div style="font-size:11px;color:var(--muted);margin-top:6px">${T?`累计测验 ${T} 次，总正确率 ${Math.round(R/T*100)}%`:'还没做过测验'} · 熟记标准：连续答对 ${MASTER_STREAK} 次且正确率 ≥ ${MASTER_ACC*100}%</div>`;
+  const f=document.getElementById('masteryFilter')?.value||'all';
+  const order={weak:0,learning:1,new:2,mastered:3};
+  const items=vocab.filter(v=>f==='all'||vocabLevel(v).key===f)
+    .sort((a,b)=>order[vocabLevel(a).key]-order[vocabLevel(b).key]||(b.date>a.date?1:-1));
+  if(!items.length){
+    list.innerHTML=`<div style="text-align:center;padding:1rem;font-size:12px;color:var(--faint);border:0.5px dashed var(--border);border-radius:var(--r)">${vocab.length?'这个分类里没有生词':'还没有生词'}</div>`;
+    return;
+  }
+  list.innerHTML=items.map(v=>`<div class="vocab-item"><span class="vocab-word">${esc(v.word)}</span><span class="vocab-meaning">${esc(v.meaning)}</span>${masteryHTML(v)}<span class="vocab-lang ${v.lang}">${v.lang.toUpperCase()}</span></div>`).join('');
 }
 
 function renderHistoryList(){
@@ -1270,7 +1310,7 @@ function renderVocab(){
   recent.forEach(v=>{
     const el=document.createElement('div');
     el.className='vocab-item';
-    el.innerHTML=`<span class="vocab-word">${esc(v.word)}</span><span class="vocab-meaning">${esc(v.meaning)}</span>${masteryHTML(v)}<span class="vocab-lang ${v.lang}">${v.lang.toUpperCase()}</span><button class="vocab-del" data-id="${v.id}"><i class="ti ti-x"></i></button>`;
+    el.innerHTML=`<span class="vocab-word">${esc(v.word)}</span><span class="vocab-meaning">${esc(v.meaning)}</span><span class="vocab-lang ${v.lang}">${v.lang.toUpperCase()}</span><button class="vocab-del" data-id="${v.id}"><i class="ti ti-x"></i></button>`;
     list.appendChild(el);
   });
   list.querySelectorAll('.vocab-del').forEach(btn=>{
@@ -1475,6 +1515,7 @@ function closeQuiz(){
   if(o) o.classList.remove('open');
   quiz=null;
   renderVocab();renderHighlights();
+  if(typeof renderVocabStats==='function'){renderVocabStats();renderMastery();}
 }
 function quizAcc(v){ const t=(v.right||0)+(v.wrong||0); return t?(v.right||0)/t:0; }
 function renderQuizSetup(){
@@ -1612,7 +1653,8 @@ function renderQuizResult(){
     closeQuiz();
   };
 }
-document.getElementById('quizVocabBtn').addEventListener('click',openQuiz);
+document.getElementById('analyticsQuizBtn')?.addEventListener('click',openQuiz);
+document.getElementById('masteryFilter')?.addEventListener('change',renderMastery);
 
 /* ══ COUNTDOWN TASKS ══ */
 let countdownFormOpen=false;
