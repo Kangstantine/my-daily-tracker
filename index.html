@@ -1596,9 +1596,13 @@ function renderQuizCard(){
     <div style="text-align:center;padding:1.5rem 0.5rem;min-height:90px;display:flex;flex-direction:column;justify-content:center;gap:14px">
       <div style="font-size:22px;font-weight:600;word-break:break-word">${esc(q)}</div>
       ${quiz.revealed?`<div style="font-size:17px;color:var(--green);word-break:break-word;border-top:0.5px dashed var(--border-md);padding-top:14px">${esc(a)}</div>
-        ${v.example
-          ?`<div style="font-size:13px;color:var(--muted);font-style:italic;line-height:1.6;word-break:break-word">“${esc(v.example)}”</div>`
-          :`<div style="display:flex;gap:6px"><input type="text" id="qExample" placeholder="添加例句（可选）…" maxlength="200" style="flex:1;font-size:13px;padding:7px 10px"/><button class="modal-cancel" id="qExampleSave" style="padding:6px 10px;font-size:12px">保存</button></div>`}`:''}
+        ${(()=>{
+          const g=(quiz.gen&&quiz.gen.id===v.id)?quiz.gen:null;
+          if(g&&g.loading) return `<div style="font-size:12px;color:var(--muted)">生成例句中…</div>`;
+          if(g&&g.example) return `<div style="font-size:13px;line-height:1.6;word-break:break-word;border:0.5px solid var(--border-md);border-radius:var(--r);padding:10px 12px;text-align:left"><div style="font-style:italic">“${esc(g.example)}”</div><div style="font-size:12px;color:var(--muted)">${esc(g.zh||'')}</div>${g.confident===false?`<div style="font-size:11px;color:#E24B4A;margin-top:4px">⚠ AI 对这个词的用法不太确定，请核对后再保存</div>`:''}<div style="display:flex;gap:6px;margin-top:8px"><button class="modal-save" id="qExAccept" style="padding:5px 12px;font-size:12px">保存</button><button class="modal-cancel" id="qExRegen" style="padding:5px 12px;font-size:12px">换一句</button></div></div>`;
+          if(v.example) return `<div style="font-size:13px;color:var(--muted);line-height:1.6;word-break:break-word"><div style="font-style:italic">“${esc(v.example)}”</div>${v.exampleZh?`<div style="font-size:12px;color:var(--faint)">${esc(v.exampleZh)}</div>`:''}<button id="qExRegen" style="background:none;border:none;color:var(--faint);font-size:11px;cursor:pointer;margin-top:4px;font-family:inherit">重新生成</button></div>`;
+          return `${g&&g.err?`<div style="font-size:11px;color:#E24B4A;word-break:break-all">${esc(g.err)}</div>`:''}<div style="display:flex;gap:6px"><button class="modal-cancel" id="qExGen" style="padding:6px 10px;font-size:12px;white-space:nowrap">✨ 生成例句</button><input type="text" id="qExample" placeholder="或手写例句…" maxlength="200" style="flex:1;font-size:13px;padding:7px 10px"/><button class="modal-cancel" id="qExampleSave" style="padding:6px 10px;font-size:12px">保存</button></div>`;
+        })()}`:''}
     </div>
     <div class="modal-btns" style="justify-content:center">
       ${quiz.revealed
@@ -1607,11 +1611,14 @@ function renderQuizCard(){
     </div>
     <div style="text-align:center"><button class="modal-cancel" id="quizClose" style="border:none;font-size:12px">结束测验</button></div>`;
   document.getElementById('quizClose').onclick=()=>{ quiz.results.length?renderQuizResult():closeQuiz(); };
+  ['qExGen','qExRegen'].forEach(id=>{const b=document.getElementById(id); if(b) b.onclick=()=>genExample(v);});
+  const exAcc=document.getElementById('qExAccept');
+  if(exAcc) exAcc.onclick=()=>{ v.example=quiz.gen.example; v.exampleZh=quiz.gen.zh||''; quiz.gen=null; save(); renderQuizCard(); };
   const exSave=document.getElementById('qExampleSave');
   if(exSave) exSave.onclick=()=>{
     const t=document.getElementById('qExample').value.trim();
     if(!t) return;
-    v.example=t; save(); renderQuizCard();
+    v.example=t; delete v.exampleZh; save(); renderQuizCard();
   };
   if(quiz.revealed){
     document.getElementById('qRight').onclick=()=>answerQuiz(true);
@@ -1619,6 +1626,25 @@ function renderQuizCard(){
   } else {
     document.getElementById('qShow').onclick=()=>{ quiz.revealed=true; renderQuizCard(); };
   }
+}
+async function genExample(v){
+  quiz.gen={id:v.id,loading:true};
+  renderQuizCard();
+  const stillHere=()=>quiz&&quiz.items[quiz.i]&&quiz.items[quiz.i].id===v.id;
+  try{
+    const res=await fetch(OCR_WORKER_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mode:'example',word:v.word,meaning:v.meaning,lang:v.lang})});
+    const raw=await res.text();
+    let r; try{ r=JSON.parse(raw); }catch(e){ throw new Error('返回内容不是JSON: '+raw.slice(0,150)); }
+    if(r.error) throw new Error(r.error);
+    if(r.debug) throw new Error('API状态'+r.status+': '+JSON.stringify(r.raw).slice(0,200));
+    if(!r.example) throw new Error('没有生成例句');
+    if(!stillHere()) return;
+    quiz.gen={id:v.id,example:r.example,zh:r.zh,confident:r.confident};
+  }catch(e){
+    if(!stillHere()) return;
+    quiz.gen={id:v.id,err:(e.message||'生成失败')+'（如果是第一次使用，请先更新 Cloudflare Worker 代码）'};
+  }
+  renderQuizCard();
 }
 function answerQuiz(ok){
   const it=quiz.items[quiz.i];
@@ -1629,6 +1655,7 @@ function answerQuiz(ok){
     v.streak=ok?(v.streak||0)+1:0;
     v.lastQuiz=todayStr();
   }
+  quiz.gen=null;
   quiz.results.push({id:it.id,ok});
   save();
   quiz.i++; quiz.revealed=false;
