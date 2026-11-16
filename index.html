@@ -584,12 +584,13 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
           <div id="vocabForm" class="add-form" style="margin-bottom:10px">
             <input type="text" id="newVocabWord" placeholder="单词…" maxlength="40" style="flex:1;min-width:100px"/>
             <input type="text" id="newVocabMeaning" placeholder="中文释义…" maxlength="80" style="flex:1.5;min-width:120px"/>
+            <input type="text" id="newVocabExample" placeholder="例句（可选）…" maxlength="200" style="flex:2;min-width:160px"/>
             <select id="newVocabLang"><option value="en">EN</option><option value="nl">NL</option></select>
             <button class="btn-ok" id="confirmVocab">添加</button>
             <button class="btn-no" id="cancelVocab">取消</button>
           </div>
           <div id="bulkVocabForm" style="display:none;flex-direction:column;gap:8px;margin-bottom:10px">
-            <textarea id="bulkVocabText" rows="6" placeholder="每行一个：单词 释义&#10;例如：&#10;ephemeral 短暂的&#10;gezellig, 舒适惬意的&#10;(分隔符可用 空格 / 逗号 / 冒号 / - / Tab)" style="width:100%;box-sizing:border-box;padding:8px 10px;border:0.5px solid var(--border-md);border-radius:var(--r);font-family:'DM Sans',sans-serif;font-size:13px;background:var(--surface);color:var(--text);resize:vertical"></textarea>
+            <textarea id="bulkVocabText" rows="6" placeholder="每行一个：单词 释义&#10;例如：&#10;ephemeral 短暂的 | The joy was ephemeral.&#10;gezellig, 舒适惬意的&#10;(例句可选，用 | 隔开)&#10;(分隔符可用 空格 / 逗号 / 冒号 / - / Tab)" style="width:100%;box-sizing:border-box;padding:8px 10px;border:0.5px solid var(--border-md);border-radius:var(--r);font-family:'DM Sans',sans-serif;font-size:13px;background:var(--surface);color:var(--text);resize:vertical"></textarea>
             <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
               <select id="bulkVocabLang"><option value="en">EN</option><option value="nl">NL</option></select>
               <button class="btn-ok" id="confirmBulkVocab">批量添加</button>
@@ -1322,11 +1323,15 @@ function addVocab(){
   const word=document.getElementById('newVocabWord').value.trim();
   const meaning=document.getElementById('newVocabMeaning').value.trim();
   const lang=document.getElementById('newVocabLang').value;
+  const example=document.getElementById('newVocabExample').value.trim();
   if(!word||!meaning) return;
   if(!data.vocab) data.vocab=[];
-  data.vocab.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,5),word,meaning,lang,date:cur});
+  const nv={id:Date.now().toString(36)+Math.random().toString(36).slice(2,5),word,meaning,lang,date:cur};
+  if(example) nv.example=example;
+  data.vocab.push(nv);
   document.getElementById('newVocabWord').value='';
   document.getElementById('newVocabMeaning').value='';
+  document.getElementById('newVocabExample').value='';
   vocabFormOpen=false;
   document.getElementById('vocabForm').classList.remove('open');
   save();renderVocab();renderHighlights();
@@ -1347,6 +1352,7 @@ document.getElementById('cancelVocab').addEventListener('click',()=>{
   document.getElementById('vocabForm').classList.remove('open');
   document.getElementById('newVocabWord').value='';
   document.getElementById('newVocabMeaning').value='';
+  document.getElementById('newVocabExample').value='';
 });
 document.getElementById('confirmVocab').addEventListener('click',addVocab);
 document.getElementById('newVocabMeaning').addEventListener('keydown',e=>{if(e.key==='Enter')addVocab();});
@@ -1419,13 +1425,16 @@ function toggleBulk(formId,textId){
 function parseVocabLine(line){
   line=line.trim();
   if(!line) return null;
+  let example='';
+  const xi=line.search(/\s*[|｜]\s*/);
+  if(xi>0){ example=line.slice(xi).replace(/^\s*[|｜]\s*/,'').trim(); line=line.slice(0,xi).trim(); }
   // 1) explicit delimiter (tab / : , ; = / " - ")  2) first CJK character starts the meaning  3) first space
   let m=line.match(/^(.+?)\s*(?:\t|[:：,，;；=]|\s[-–—]\s)\s*(.+)$/);
   if(!m) m=line.match(/^([^㐀-鿿＀-￯]+?)\s*([㐀-鿿＀-￯].*)$/);
   if(!m) m=line.match(/^(\S+)\s+(.+)$/);
   if(!m) return null;
   const word=m[1].trim(), meaning=m[2].trim();
-  return (word&&meaning)?{word,meaning}:null;
+  return (word&&meaning)?{word,meaning,example}:null;
 }
 function bulkAddVocab(){
   const ta=document.getElementById('bulkVocabText');
@@ -1437,7 +1446,9 @@ function bulkAddVocab(){
     if(!l.trim()) return;
     const p=parseVocabLine(l);
     if(!p){ bad.push(l); return; }
-    data.vocab.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,6)+ok,word:p.word,meaning:p.meaning,lang,date:cur});
+    const nv={id:Date.now().toString(36)+Math.random().toString(36).slice(2,6)+ok,word:p.word,meaning:p.meaning,lang,date:cur};
+    if(p.example) nv.example=p.example;
+    data.vocab.push(nv);
     ok++;
   });
   ta.value=bad.join('\n');
@@ -1584,7 +1595,10 @@ function renderQuizCard(){
     <div class="cd-prog-track"><div class="cd-prog-fill" style="width:${pct}%"></div></div>
     <div style="text-align:center;padding:1.5rem 0.5rem;min-height:90px;display:flex;flex-direction:column;justify-content:center;gap:14px">
       <div style="font-size:22px;font-weight:600;word-break:break-word">${esc(q)}</div>
-      ${quiz.revealed?`<div style="font-size:17px;color:var(--green);word-break:break-word;border-top:0.5px dashed var(--border-md);padding-top:14px">${esc(a)}</div>`:''}
+      ${quiz.revealed?`<div style="font-size:17px;color:var(--green);word-break:break-word;border-top:0.5px dashed var(--border-md);padding-top:14px">${esc(a)}</div>
+        ${v.example
+          ?`<div style="font-size:13px;color:var(--muted);font-style:italic;line-height:1.6;word-break:break-word">“${esc(v.example)}”</div>`
+          :`<div style="display:flex;gap:6px"><input type="text" id="qExample" placeholder="添加例句（可选）…" maxlength="200" style="flex:1;font-size:13px;padding:7px 10px"/><button class="modal-cancel" id="qExampleSave" style="padding:6px 10px;font-size:12px">保存</button></div>`}`:''}
     </div>
     <div class="modal-btns" style="justify-content:center">
       ${quiz.revealed
@@ -1593,6 +1607,12 @@ function renderQuizCard(){
     </div>
     <div style="text-align:center"><button class="modal-cancel" id="quizClose" style="border:none;font-size:12px">结束测验</button></div>`;
   document.getElementById('quizClose').onclick=()=>{ quiz.results.length?renderQuizResult():closeQuiz(); };
+  const exSave=document.getElementById('qExampleSave');
+  if(exSave) exSave.onclick=()=>{
+    const t=document.getElementById('qExample').value.trim();
+    if(!t) return;
+    v.example=t; save(); renderQuizCard();
+  };
   if(quiz.revealed){
     document.getElementById('qRight').onclick=()=>answerQuiz(true);
     document.getElementById('qWrong').onclick=()=>answerQuiz(false);
