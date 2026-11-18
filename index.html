@@ -411,10 +411,42 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .wp-text{flex:1;font-size:12px;line-height:1.45;color:var(--text);min-width:0}
 .wp-item.done .wp-text{color:var(--muted);text-decoration:line-through;text-decoration-color:var(--faint)}
 .wp-missing{font-size:12px;color:var(--muted);line-height:1.5}
+.wp-daily-block{margin-bottom:14px;padding-bottom:14px;border-bottom:0.5px solid var(--border)}
+.wp-daily{background:var(--green-pale);border-left:3px solid var(--green);border-radius:var(--r);padding:12px 14px}
+.wp-daily-head{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.wp-daily-label{font-size:14px;font-weight:600}
+.wp-daily-meta{display:flex;align-items:center;gap:8px;margin-left:auto;flex-wrap:wrap;justify-content:flex-end}
+.wp-daily-date{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace}
+.wp-daily-mins{font-size:11px;font-weight:600;background:var(--surface);color:var(--text);border-radius:20px;padding:2px 8px}
+.wp-daily-empty{font-size:12px;color:var(--muted);margin-bottom:4px}
+.wp-daily-when{font-size:12px;font-weight:600;margin-bottom:6px}
+.wp-daily-note{margin-top:8px;font-size:11px;color:var(--muted);line-height:1.45}
+.wp-daily .wp-items{margin-top:0}
+.wp-daily .wp-chk{width:18px;height:18px;margin-top:1px}
+.wp-daily .wp-text{font-size:14px;font-weight:500}
+.wp-item-date{font-size:11px;font-family:'DM Mono',monospace;color:var(--muted);flex-shrink:0;padding-top:1px}
+.wp-overdue{margin-top:10px}
+.wp-overdue-label{font-size:11px;font-weight:600;color:var(--muted);margin-bottom:2px}
+.wp-overdue .wp-items{margin-top:0}
+.wp-overdue .wp-item{padding:3px 0}
+.wp-overdue .wp-text{font-size:12px;font-weight:400;color:var(--muted)}
+.wp-overdue .wp-chk{width:14px;height:14px;border-color:var(--faint)}
+.wp-week{margin-top:10px;border:0.5px solid var(--border);border-radius:var(--r);background:var(--surface);overflow:hidden}
+.wp-week summary{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 12px;cursor:pointer;font-size:12px;font-weight:600;list-style:none}
+.wp-week summary::-webkit-details-marker{display:none}
+.wp-week summary::marker{content:''}
+.wp-week-sum{display:flex;align-items:center;gap:6px}
+.wp-week summary .ti{font-size:14px;color:var(--muted);transition:transform 0.15s;transform:rotate(-90deg)}
+.wp-week[open] summary .ti{transform:rotate(0deg)}
+.wp-week-count{font-family:'DM Mono',monospace;font-size:11px;font-weight:500;color:var(--muted)}
+.wp-week-items{margin-top:0;padding:0 10px 8px}
+.wp-week .wp-item.is-today{background:var(--green-pale);border-radius:8px;padding:6px}
 @media(max-width:600px){
   .writing-plan{padding:1rem}
   .wp-title{font-size:14px}
   .wp-head{gap:8px}
+  .wp-daily{padding:10px 12px}
+  .wp-daily .wp-text{font-size:14px}
 }
 </style>
 </head>
@@ -2500,9 +2532,118 @@ async function loadWritingPlan(){
   }
 }
 
-function renderWritingPlan(plan){
+function planDayLabel(s){
+  const d=parseD(s);
+  return (d.getMonth()+1)+'月'+d.getDate()+'日 周'+WEEKDAYS[d.getDay()];
+}
+function planDayShort(s){
+  const d=parseD(s);
+  return (d.getMonth()+1)+'月'+d.getDate()+'日';
+}
+function planWeekRange(day){
+  const t=parseD(day);
+  const dow=t.getDay()===0?6:t.getDay()-1;
+  t.setDate(t.getDate()-dow);
+  const start=t.getFullYear()+'-'+pad(t.getMonth()+1)+'-'+pad(t.getDate());
+  return {start, end:addDays(start,6)};
+}
+function writingPlanDaily(plan){
+  const daily=plan&&plan.daily;
+  if(!daily||typeof daily!=='object'||Array.isArray(daily)) return null;
+  const tasks=[];
+  const raw=Array.isArray(daily.tasks)?daily.tasks:[];
+  raw.forEach(it=>{
+    if(!it||typeof it!=='object') return;
+    if(typeof it.date!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(it.date)) return;
+    tasks.push({date:it.date, text:typeof it.text==='string'?it.text:'', done:!!it.done});
+  });
+  tasks.sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
+  const mins=Number(daily.minutesPerDay);
+  return {
+    minutes:Number.isFinite(mins)&&mins>0?mins:0,
+    note:typeof daily.note==='string'?daily.note.trim():'',
+    tasks
+  };
+}
+function appendPlanTask(ul, task, opts){
+  const li=document.createElement('li');
+  li.className='wp-item'+(task.done?' done':'')+(opts&&opts.today?' is-today':'');
+  const date=opts&&opts.showDate?`<span class="wp-item-date">${esc(planDayShort(task.date))}</span>`:'';
+  li.innerHTML=`<span class="wp-chk" aria-hidden="true"><i class="ti ti-check"></i></span>${date}<span class="wp-text">${esc(task.text)}</span>`;
+  ul.appendChild(li);
+}
+function buildWritingPlanDaily(plan, day){
+  const daily=writingPlanDaily(plan);
+  if(!daily) return null;
+  const block=document.createElement('div');
+  block.className='wp-daily-block';
+  const todays=daily.tasks.filter(t=>t.date===day);
+  let focus=todays, when='', empty='';
+  if(!todays.length){
+    const next=daily.tasks.find(t=>t.date>day);
+    if(next){
+      focus=daily.tasks.filter(t=>t.date===next.date);
+      when='下一项 · '+planDayLabel(next.date);
+      empty='今天没有安排';
+    }else if(daily.tasks.length){
+      empty='没有更晚的每日任务';
+    }else{
+      empty='还没有每日任务';
+    }
+  }
+  const sec=document.createElement('section');
+  sec.className='wp-daily';
+  sec.setAttribute('aria-label','今日任务');
+  const meta=[`<span class="wp-daily-date">${esc(planDayLabel(day))}</span>`];
+  if(daily.minutes) meta.push(`<span class="wp-daily-mins">${daily.minutes} 分钟</span>`);
+  sec.innerHTML=`
+    <div class="wp-daily-head">
+      <div class="wp-daily-label">今日任务</div>
+      <div class="wp-daily-meta">${meta.join('')}</div>
+    </div>
+    ${empty?`<div class="wp-daily-empty">${esc(empty)}</div>`:''}
+    ${when?`<div class="wp-daily-when">${esc(when)}</div>`:''}
+    ${focus.length?'<ul class="wp-items wp-daily-items"></ul>':''}
+    ${daily.note?`<div class="wp-daily-note">${esc(daily.note)}</div>`:''}`;
+  const focusList=sec.querySelector('.wp-daily-items');
+  if(focusList) focus.forEach(t=>appendPlanTask(focusList, t));
+  block.appendChild(sec);
+
+  const overdue=daily.tasks.filter(t=>t.date<day&&!t.done);
+  if(overdue.length){
+    const od=document.createElement('section');
+    od.className='wp-overdue';
+    od.setAttribute('aria-label','已过期未完成');
+    od.innerHTML=`<div class="wp-overdue-label">已过期未完成 · ${overdue.length}</div><ul class="wp-items"></ul>`;
+    const list=od.querySelector('ul');
+    overdue.forEach(t=>appendPlanTask(list, t, {showDate:true}));
+    block.appendChild(od);
+  }
+
+  const range=planWeekRange(day);
+  const week=daily.tasks.filter(t=>t.date>=range.start&&t.date<=range.end);
+  if(week.length){
+    const done=week.filter(t=>t.done).length;
+    const det=document.createElement('details');
+    det.className='wp-week';
+    det.open=true;
+    det.innerHTML=`
+      <summary>
+        <span class="wp-week-sum"><i class="ti ti-chevron-down"></i> 本周每日</span>
+        <span class="wp-week-count">${done}/${week.length}</span>
+      </summary>
+      <ul class="wp-items wp-week-items"></ul>`;
+    const list=det.querySelector('ul');
+    week.forEach(t=>appendPlanTask(list, t, {showDate:true, today:t.date===day}));
+    block.appendChild(det);
+  }
+  return block;
+}
+
+function renderWritingPlan(plan, asOf){
   const card=document.getElementById('writingPlanCard');
   if(!card) return;
+  const day=typeof asOf==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(asOf)?asOf:todayStr();
   const phases=plan.phases;
   let doneAll=0,totalAll=0;
   phases.forEach(p=>{
@@ -2532,6 +2673,8 @@ function renderWritingPlan(plan){
     </div>
     <div class="wp-track" aria-hidden="true"><div class="wp-fill" style="width:${pct}%"></div></div>
     <div class="wp-phases"></div>`;
+  const dailyEl=buildWritingPlanDaily(plan, day);
+  if(dailyEl) card.insertBefore(dailyEl, card.firstChild);
   const wrap=card.querySelector('.wp-phases');
   if(!phases.length){
     wrap.innerHTML='<div class="wp-missing">还没有阶段</div>';
