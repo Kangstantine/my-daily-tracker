@@ -378,6 +378,76 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .modal-btns{display:flex;gap:8px;justify-content:flex-end}
 .modal-cancel{background:none;border:0.5px solid var(--border-md);border-radius:9px;padding:8px 16px;font-size:13px;cursor:pointer;color:var(--muted);font-family:'DM Sans',sans-serif}
 .modal-save{background:var(--green);border:none;color:#fff;border-radius:9px;padding:8px 16px;font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:500}
+
+/* ════════════════════════════
+   WRITING PLAN (read-only)
+════════════════════════════ */
+.writing-plan{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--r-lg);padding:1.25rem;margin-bottom:16px}
+.wp-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.wp-title-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.wp-title{font-size:15px;font-weight:600;letter-spacing:-0.01em;line-height:1.35}
+.wp-badge{font-size:11px;padding:2px 8px;border-radius:20px;font-weight:500;background:var(--surface2);color:var(--muted)}
+.wp-meta{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:4px;font-size:11px;color:var(--muted)}
+.wp-updated{font-family:'DM Mono',monospace}
+.wp-link{color:var(--green);text-decoration:none;font-weight:500}
+.wp-link:hover{text-decoration:underline}
+.wp-count{font-size:13px;font-weight:600;font-family:'DM Mono',monospace;color:var(--green);flex-shrink:0;padding-top:2px}
+.wp-track{height:6px;background:var(--surface2);border-radius:3px;overflow:hidden;margin-top:12px}
+.wp-track-sm{height:4px;margin-top:8px}
+.wp-fill{height:100%;border-radius:3px;background:var(--green)}
+.wp-phases{display:flex;flex-direction:column;gap:10px;margin-top:14px}
+.wp-phase{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--r);padding:10px 12px}
+.wp-phase-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.wp-phase-main{min-width:0}
+.wp-phase-name{font-size:13px;font-weight:600;line-height:1.4}
+.wp-phase-window{font-size:11px;color:var(--muted);margin-top:2px;font-family:'DM Mono',monospace}
+.wp-phase-count{font-size:11px;font-family:'DM Mono',monospace;color:var(--muted);flex-shrink:0;padding-top:2px}
+.wp-items{list-style:none;display:flex;flex-direction:column;gap:2px;margin-top:8px}
+.wp-item{display:flex;align-items:flex-start;gap:8px;padding:5px 2px;cursor:default}
+.wp-chk{width:16px;height:16px;border:1.5px solid var(--border-md);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.wp-item.done .wp-chk{background:var(--green);border-color:var(--green)}
+.wp-chk i{font-size:9px;color:#fff;display:none}
+.wp-item.done .wp-chk i{display:block}
+.wp-text{flex:1;font-size:12px;line-height:1.45;color:var(--text);min-width:0}
+.wp-item.done .wp-text{color:var(--muted);text-decoration:line-through;text-decoration-color:var(--faint)}
+.wp-missing{font-size:12px;color:var(--muted);line-height:1.5}
+.wp-daily-block{margin-bottom:14px;padding-bottom:14px;border-bottom:0.5px solid var(--border)}
+.wp-daily{background:var(--green-pale);border-left:3px solid var(--green);border-radius:var(--r);padding:12px 14px}
+.wp-daily-head{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.wp-daily-label{font-size:14px;font-weight:600}
+.wp-daily-meta{display:flex;align-items:center;gap:8px;margin-left:auto;flex-wrap:wrap;justify-content:flex-end}
+.wp-daily-date{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace}
+.wp-daily-mins{font-size:11px;font-weight:600;background:var(--surface);color:var(--text);border-radius:20px;padding:2px 8px}
+.wp-daily-empty{font-size:12px;color:var(--muted);margin-bottom:4px}
+.wp-daily-when{font-size:12px;font-weight:600;margin-bottom:6px}
+.wp-daily-note{margin-top:8px;font-size:11px;color:var(--muted);line-height:1.45}
+.wp-daily .wp-items{margin-top:0}
+.wp-daily .wp-chk{width:18px;height:18px;margin-top:1px}
+.wp-daily .wp-text{font-size:14px;font-weight:500}
+.wp-item-date{font-size:11px;font-family:'DM Mono',monospace;color:var(--muted);flex-shrink:0;padding-top:1px}
+.wp-overdue{margin-top:10px}
+.wp-overdue-label{font-size:11px;font-weight:600;color:var(--muted);margin-bottom:2px}
+.wp-overdue .wp-items{margin-top:0}
+.wp-overdue .wp-item{padding:3px 0}
+.wp-overdue .wp-text{font-size:12px;font-weight:400;color:var(--muted)}
+.wp-overdue .wp-chk{width:14px;height:14px;border-color:var(--faint)}
+.wp-week{margin-top:10px;border:0.5px solid var(--border);border-radius:var(--r);background:var(--surface);overflow:hidden}
+.wp-week summary{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 12px;cursor:pointer;font-size:12px;font-weight:600;list-style:none}
+.wp-week summary::-webkit-details-marker{display:none}
+.wp-week summary::marker{content:''}
+.wp-week-sum{display:flex;align-items:center;gap:6px}
+.wp-week summary .ti{font-size:14px;color:var(--muted);transition:transform 0.15s;transform:rotate(-90deg)}
+.wp-week[open] summary .ti{transform:rotate(0deg)}
+.wp-week-count{font-family:'DM Mono',monospace;font-size:11px;font-weight:500;color:var(--muted)}
+.wp-week-items{margin-top:0;padding:0 10px 8px}
+.wp-week .wp-item.is-today{background:var(--green-pale);border-radius:8px;padding:6px}
+@media(max-width:600px){
+  .writing-plan{padding:1rem}
+  .wp-title{font-size:14px}
+  .wp-head{gap:8px}
+  .wp-daily{padding:10px 12px}
+  .wp-daily .wp-text{font-size:14px}
+}
 </style>
 </head>
 <body>
@@ -403,6 +473,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 
     <!-- Sprint block -->
     <div class="sprint-card" id="sprintCard"></div>
+
+    <!-- Photo Story writing plan: static JSON, display only -->
+    <div class="writing-plan" id="writingPlanCard" hidden></div>
 
     <div class="goals-header">
       <div class="goals-title">年度目标</div>
@@ -2441,7 +2514,204 @@ document.getElementById('goalModalSave').addEventListener('click',()=>{
   save();renderGoals();
 });
 
+/* ══ WRITING PLAN (read-only, data/writing-plan.json) ══ */
+function escAttr(s){return esc(s).replace(/"/g,'&quot;')}
+
+async function loadWritingPlan(){
+  const card=document.getElementById('writingPlanCard');
+  if(!card) return;
+  try{
+    const r=await fetch('data/writing-plan.json');
+    if(!r.ok) throw new Error('not found');
+    const plan=await r.json();
+    if(!plan||typeof plan!=='object'||!Array.isArray(plan.phases)) throw new Error('bad shape');
+    renderWritingPlan(plan);
+  }catch(e){
+    card.hidden=false;
+    card.innerHTML='<div class="wp-missing">写作计划暂时无法加载</div>';
+  }
+}
+
+function planDayLabel(s){
+  const d=parseD(s);
+  return (d.getMonth()+1)+'月'+d.getDate()+'日 周'+WEEKDAYS[d.getDay()];
+}
+function planDayShort(s){
+  const d=parseD(s);
+  return (d.getMonth()+1)+'月'+d.getDate()+'日';
+}
+function planWeekRange(day){
+  const t=parseD(day);
+  const dow=t.getDay()===0?6:t.getDay()-1;
+  t.setDate(t.getDate()-dow);
+  const start=t.getFullYear()+'-'+pad(t.getMonth()+1)+'-'+pad(t.getDate());
+  return {start, end:addDays(start,6)};
+}
+function writingPlanDaily(plan){
+  const daily=plan&&plan.daily;
+  if(!daily||typeof daily!=='object'||Array.isArray(daily)) return null;
+  const tasks=[];
+  const raw=Array.isArray(daily.tasks)?daily.tasks:[];
+  raw.forEach(it=>{
+    if(!it||typeof it!=='object') return;
+    if(typeof it.date!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(it.date)) return;
+    tasks.push({date:it.date, text:typeof it.text==='string'?it.text:'', done:!!it.done});
+  });
+  tasks.sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
+  const mins=Number(daily.minutesPerDay);
+  return {
+    minutes:Number.isFinite(mins)&&mins>0?mins:0,
+    note:typeof daily.note==='string'?daily.note.trim():'',
+    tasks
+  };
+}
+function appendPlanTask(ul, task, opts){
+  const li=document.createElement('li');
+  li.className='wp-item'+(task.done?' done':'')+(opts&&opts.today?' is-today':'');
+  const date=opts&&opts.showDate?`<span class="wp-item-date">${esc(planDayShort(task.date))}</span>`:'';
+  li.innerHTML=`<span class="wp-chk" aria-hidden="true"><i class="ti ti-check"></i></span>${date}<span class="wp-text">${esc(task.text)}</span>`;
+  ul.appendChild(li);
+}
+function buildWritingPlanDaily(plan, day){
+  const daily=writingPlanDaily(plan);
+  if(!daily) return null;
+  const block=document.createElement('div');
+  block.className='wp-daily-block';
+  const todays=daily.tasks.filter(t=>t.date===day);
+  let focus=todays, when='', empty='';
+  if(!todays.length){
+    const next=daily.tasks.find(t=>t.date>day);
+    if(next){
+      focus=daily.tasks.filter(t=>t.date===next.date);
+      when='下一项 · '+planDayLabel(next.date);
+      empty='今天没有安排';
+    }else if(daily.tasks.length){
+      empty='没有更晚的每日任务';
+    }else{
+      empty='还没有每日任务';
+    }
+  }
+  const sec=document.createElement('section');
+  sec.className='wp-daily';
+  sec.setAttribute('aria-label','今日任务');
+  const meta=[`<span class="wp-daily-date">${esc(planDayLabel(day))}</span>`];
+  if(daily.minutes) meta.push(`<span class="wp-daily-mins">${daily.minutes} 分钟</span>`);
+  sec.innerHTML=`
+    <div class="wp-daily-head">
+      <div class="wp-daily-label">今日任务</div>
+      <div class="wp-daily-meta">${meta.join('')}</div>
+    </div>
+    ${empty?`<div class="wp-daily-empty">${esc(empty)}</div>`:''}
+    ${when?`<div class="wp-daily-when">${esc(when)}</div>`:''}
+    ${focus.length?'<ul class="wp-items wp-daily-items"></ul>':''}
+    ${daily.note?`<div class="wp-daily-note">${esc(daily.note)}</div>`:''}`;
+  const focusList=sec.querySelector('.wp-daily-items');
+  if(focusList) focus.forEach(t=>appendPlanTask(focusList, t));
+  block.appendChild(sec);
+
+  const overdue=daily.tasks.filter(t=>t.date<day&&!t.done);
+  if(overdue.length){
+    const od=document.createElement('section');
+    od.className='wp-overdue';
+    od.setAttribute('aria-label','已过期未完成');
+    od.innerHTML=`<div class="wp-overdue-label">已过期未完成 · ${overdue.length}</div><ul class="wp-items"></ul>`;
+    const list=od.querySelector('ul');
+    overdue.forEach(t=>appendPlanTask(list, t, {showDate:true}));
+    block.appendChild(od);
+  }
+
+  const range=planWeekRange(day);
+  const week=daily.tasks.filter(t=>t.date>=range.start&&t.date<=range.end);
+  if(week.length){
+    const done=week.filter(t=>t.done).length;
+    const det=document.createElement('details');
+    det.className='wp-week';
+    det.open=true;
+    det.innerHTML=`
+      <summary>
+        <span class="wp-week-sum"><i class="ti ti-chevron-down"></i> 本周每日</span>
+        <span class="wp-week-count">${done}/${week.length}</span>
+      </summary>
+      <ul class="wp-items wp-week-items"></ul>`;
+    const list=det.querySelector('ul');
+    week.forEach(t=>appendPlanTask(list, t, {showDate:true, today:t.date===day}));
+    block.appendChild(det);
+  }
+  return block;
+}
+
+function renderWritingPlan(plan, asOf){
+  const card=document.getElementById('writingPlanCard');
+  if(!card) return;
+  const day=typeof asOf==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(asOf)?asOf:todayStr();
+  const phases=plan.phases;
+  let doneAll=0,totalAll=0;
+  phases.forEach(p=>{
+    const items=Array.isArray(p&&p.items)?p.items:[];
+    totalAll+=items.length;
+    doneAll+=items.filter(it=>it&&it.done).length;
+  });
+  const pct=totalAll?Math.round(doneAll/totalAll*100):0;
+  const title=typeof plan.title==='string'&&plan.title.trim()?plan.title.trim():'写作计划';
+  const updated=typeof plan.updated==='string'?plan.updated.trim():'';
+  const notion=typeof plan.notion==='string'&&/^https?:\/\//i.test(plan.notion.trim())?plan.notion.trim():'';
+  card.hidden=false;
+  card.innerHTML=`
+    <div class="wp-head">
+      <div class="wp-head-main">
+        <div class="wp-title-row">
+          <div class="wp-title">${esc(title)}</div>
+          <span class="wp-badge">只读</span>
+        </div>
+        <div class="wp-meta">
+          ${updated?`<span class="wp-updated">更新于 ${esc(updated)}</span>`:''}
+          ${updated&&notion?'<span>·</span>':''}
+          ${notion?`<a class="wp-link" href="${escAttr(notion)}" target="_blank" rel="noopener noreferrer">在 Notion 打开</a>`:''}
+        </div>
+      </div>
+      <div class="wp-count">${doneAll}/${totalAll}</div>
+    </div>
+    <div class="wp-track" aria-hidden="true"><div class="wp-fill" style="width:${pct}%"></div></div>
+    <div class="wp-phases"></div>`;
+  const dailyEl=buildWritingPlanDaily(plan, day);
+  if(dailyEl) card.insertBefore(dailyEl, card.firstChild);
+  const wrap=card.querySelector('.wp-phases');
+  if(!phases.length){
+    wrap.innerHTML='<div class="wp-missing">还没有阶段</div>';
+    return;
+  }
+  phases.forEach(p=>{
+    const items=Array.isArray(p&&p.items)?p.items:[];
+    const done=items.filter(it=>it&&it.done).length;
+    const phasePct=items.length?Math.round(done/items.length*100):0;
+    const name=p&&typeof p.name==='string'?p.name:'';
+    const span=p&&typeof p.window==='string'?p.window:'';
+    const sec=document.createElement('section');
+    sec.className='wp-phase';
+    sec.innerHTML=`
+      <div class="wp-phase-head">
+        <div class="wp-phase-main">
+          <div class="wp-phase-name">${esc(name)}</div>
+          ${span?`<div class="wp-phase-window">${esc(span)}</div>`:''}
+        </div>
+        <div class="wp-phase-count">${done}/${items.length}</div>
+      </div>
+      <div class="wp-track wp-track-sm" aria-hidden="true"><div class="wp-fill" style="width:${phasePct}%"></div></div>
+      <ul class="wp-items"></ul>`;
+    const ul=sec.querySelector('.wp-items');
+    items.forEach(it=>{
+      const text=it&&typeof it.text==='string'?it.text:'';
+      const li=document.createElement('li');
+      li.className='wp-item'+(it&&it.done?' done':'');
+      li.innerHTML=`<span class="wp-chk" aria-hidden="true"><i class="ti ti-check"></i></span><span class="wp-text">${esc(text)}</span>`;
+      ul.appendChild(li);
+    });
+    wrap.appendChild(sec);
+  });
+}
+
 load();
+loadWritingPlan();
 </script>
 </body>
 </html>
