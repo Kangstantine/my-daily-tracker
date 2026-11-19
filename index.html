@@ -424,6 +424,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .wp-daily .wp-items{margin-top:0}
 .wp-daily .wp-chk{width:18px;height:18px;margin-top:1px}
 .wp-daily .wp-text{font-size:14px;font-weight:500}
+a.wp-task-link{color:inherit;font-weight:inherit;text-decoration:none}
+a.wp-task-link:hover{text-decoration:underline}
+.wp-task-ext{margin-left:0.2em;font-size:0.8em;color:var(--muted)}
 .wp-item-date{font-size:11px;font-family:'DM Mono',monospace;color:var(--muted);flex-shrink:0;padding-top:1px}
 .wp-overdue{margin-top:10px}
 .wp-overdue-label{font-size:11px;font-weight:600;color:var(--muted);margin-bottom:2px}
@@ -2555,7 +2558,7 @@ function writingPlanDaily(plan){
   raw.forEach(it=>{
     if(!it||typeof it!=='object') return;
     if(typeof it.date!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(it.date)) return;
-    tasks.push({date:it.date, text:typeof it.text==='string'?it.text:'', done:!!it.done});
+    tasks.push({date:it.date, text:typeof it.text==='string'?it.text:'', done:!!it.done, link:typeof it.link==='string'?it.link.trim():''});
   });
   tasks.sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
   const mins=Number(daily.minutesPerDay);
@@ -2565,11 +2568,18 @@ function writingPlanDaily(plan){
     tasks
   };
 }
+function planTaskHref(task){
+  const link=task&&typeof task.link==='string'?task.link.trim():'';
+  return /^https?:\/\//i.test(link)?link:'';
+}
 function appendPlanTask(ul, task, opts){
   const li=document.createElement('li');
   li.className='wp-item'+(task.done?' done':'')+(opts&&opts.today?' is-today':'');
   const date=opts&&opts.showDate?`<span class="wp-item-date">${esc(planDayShort(task.date))}</span>`:'';
-  li.innerHTML=`<span class="wp-chk" aria-hidden="true"><i class="ti ti-check"></i></span>${date}<span class="wp-text">${esc(task.text)}</span>`;
+  const href=planTaskHref(task);
+  const label=esc(task.text);
+  const body=href?`<a class="wp-task-link" href="${escAttr(href)}" target="_blank" rel="noopener noreferrer">${label}<span class="wp-task-ext" aria-hidden="true">↗</span></a>`:label;
+  li.innerHTML=`<span class="wp-chk" aria-hidden="true"><i class="ti ti-check"></i></span>${date}<span class="wp-text">${body}</span>`;
   ul.appendChild(li);
 }
 function buildWritingPlanDaily(plan, day){
