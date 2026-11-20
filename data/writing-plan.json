@@ -1,18 +1,30 @@
 {
   "title": "Photo Story 写作计划",
-  "updated": "2026-11-19",
+  "updated": "2026-11-20",
   "notion": "https://app.notion.com/p/41ce6edebc2881d1ab79eb0d718f8703",
   "phases": [
     {
       "name": "第一步：西巴尔干「五点十七分」",
-      "window": "现在—12 月中",
+      "window": "现在—1 月初",
       "items": [
         {
           "text": "补写布达佩斯开篇",
           "done": false
         },
         {
-          "text": "匈牙利到克罗地亚三个版本合成一篇",
+          "text": "补写塞克什白堡",
+          "done": false
+        },
+        {
+          "text": "匈牙利到克罗地亚三个版本合成路上和边境的一篇",
+          "done": false
+        },
+        {
+          "text": "补写萨格勒布",
+          "done": false
+        },
+        {
+          "text": "巴尼亚卢卡（公众号）改成章节",
           "done": false
         },
         {
@@ -24,11 +36,35 @@
           "done": false
         },
         {
+          "text": "补写特雷比涅（先看要不要单独成章）",
+          "done": false
+        },
+        {
           "text": "Kotor 样章定稿",
           "done": false
         },
         {
           "text": "《地拉那》改成章节",
+          "done": false
+        },
+        {
+          "text": "补写杜拉斯",
+          "done": false
+        },
+        {
+          "text": "补写普里兹伦",
+          "done": false
+        },
+        {
+          "text": "补写普里什蒂纳",
+          "done": false
+        },
+        {
+          "text": "补写米特罗维察",
+          "done": false
+        },
+        {
+          "text": "补写斯科普里",
           "done": false
         },
         {
@@ -43,7 +79,7 @@
     },
     {
       "name": "第二步：罗马尼亚和摩尔多瓦",
-      "window": "12 月下旬",
+      "window": "1 月中旬",
       "items": [
         {
           "text": "定标题（看上两遍 / 左岸 / 达契亚以后）",
@@ -69,7 +105,7 @@
     },
     {
       "name": "第三步：2011「接近日出的方向」",
-      "window": "1—2 月",
+      "window": "2—3 月",
       "items": [
         {
           "text": "《过境》、荷兰出发、班贝格、布拉格、《中断的旅途》整理成章节",
@@ -91,7 +127,7 @@
     },
     {
       "name": "第四步：从零写",
-      "window": "3 月起，每月一条",
+      "window": "3 月中旬起，每月一条",
       "items": [
         {
           "text": "高加索三国",
@@ -150,150 +186,246 @@
       },
       {
         "date": "2026-11-23",
-        "text": "匈牙利到克罗地亚：对比三个版本，挑保留段落",
-        "link": "https://app.notion.com/p/41de6edebc28812e9567c502966a54ce",
+        "text": "塞克什白堡：回忆当天停留，列要点（素材很少）",
+        "link": "https://app.notion.com/p/41ee6edebc2881fbb910f7ac00fbf8f3",
         "done": false
       },
       {
         "date": "2026-11-24",
-        "text": "匈牙利到克罗地亚：合成一稿的骨架",
+        "text": "匈牙利到克罗地亚：对比三个版本，挑出路上和边境的段落",
         "link": "https://app.notion.com/p/41de6edebc28812e9567c502966a54ce",
         "done": false
       },
       {
         "date": "2026-11-25",
-        "text": "匈牙利到克罗地亚：写前半",
+        "text": "匈牙利到克罗地亚：合成边境与路上的一稿，通读收尾，选配图",
         "link": "https://app.notion.com/p/41de6edebc28812e9567c502966a54ce",
         "done": false
       },
       {
         "date": "2026-11-26",
-        "text": "匈牙利到克罗地亚：写后半",
-        "link": "https://app.notion.com/p/41de6edebc28812e9567c502966a54ce",
+        "text": "萨格勒布：通读 #55 和朋友圈，列提纲",
+        "link": "https://app.notion.com/p/41ee6edebc288151957dc8e8da00d6b4",
         "done": false
       },
       {
         "date": "2026-11-27",
-        "text": "匈牙利到克罗地亚：通读收尾，选配图",
-        "link": "https://app.notion.com/p/41de6edebc28812e9567c502966a54ce",
+        "text": "萨格勒布：写初稿并通读收尾，选配图",
+        "link": "https://app.notion.com/p/41ee6edebc288151957dc8e8da00d6b4",
         "done": false
       },
       {
         "date": "2026-11-28",
+        "text": "巴尼亚卢卡：通读公众号原文，列要改的地方",
+        "link": "https://app.notion.com/p/41ee6edebc288189a915c2fb79b3d23c",
+        "done": false
+      },
+      {
+        "date": "2026-11-29",
+        "text": "巴尼亚卢卡：改成章节并通读收尾，选配图",
+        "link": "https://app.notion.com/p/41ee6edebc288189a915c2fb79b3d23c",
+        "done": false
+      },
+      {
+        "date": "2026-11-30",
         "text": "萨拉热窝（小红书 #46）：通读，列要扩写的点",
         "link": "https://app.notion.com/p/41de6edebc2881059de8ca84bdde5ba8",
         "done": false
       },
       {
-        "date": "2026-11-29",
+        "date": "2026-12-01",
         "text": "萨拉热窝：扩写前半",
         "link": "https://app.notion.com/p/41de6edebc2881059de8ca84bdde5ba8",
         "done": false
       },
       {
-        "date": "2026-11-30",
+        "date": "2026-12-02",
         "text": "萨拉热窝：扩写后半",
         "link": "https://app.notion.com/p/41de6edebc2881059de8ca84bdde5ba8",
         "done": false
       },
       {
-        "date": "2026-12-01",
+        "date": "2026-12-03",
         "text": "萨拉热窝：通读收尾，选配图",
         "link": "https://app.notion.com/p/41de6edebc2881059de8ca84bdde5ba8",
         "done": false
       },
       {
-        "date": "2026-12-02",
+        "date": "2026-12-04",
         "text": "萨拉热窝到莫斯塔尔火车稿：通读，列提纲",
         "link": "https://app.notion.com/p/41de6edebc288181bbd8d39c0d4a95f8",
         "done": false
       },
       {
-        "date": "2026-12-03",
+        "date": "2026-12-05",
         "text": "火车稿：改写前半",
         "link": "https://app.notion.com/p/41de6edebc288181bbd8d39c0d4a95f8",
         "done": false
       },
       {
-        "date": "2026-12-04",
+        "date": "2026-12-06",
         "text": "火车稿：改写后半",
         "link": "https://app.notion.com/p/41de6edebc288181bbd8d39c0d4a95f8",
         "done": false
       },
       {
-        "date": "2026-12-05",
+        "date": "2026-12-07",
         "text": "火车稿：通读收尾，选配图",
         "link": "https://app.notion.com/p/41de6edebc288181bbd8d39c0d4a95f8",
         "done": false
       },
       {
-        "date": "2026-12-06",
+        "date": "2026-12-08",
+        "text": "特雷比涅：通读仅有的一句，决定是否单独成章",
+        "link": "https://app.notion.com/p/41ee6edebc2881ad9445dc12bfed6dda",
+        "done": false
+      },
+      {
+        "date": "2026-12-09",
         "text": "Kotor 样章：通读一遍，标出要改的地方",
         "link": "https://app.notion.com/p/41de6edebc2881249332d72aca3e7480",
         "done": false
       },
       {
-        "date": "2026-12-07",
+        "date": "2026-12-10",
         "text": "Kotor 样章：改完定稿，确认图注",
         "link": "https://app.notion.com/p/41de6edebc2881249332d72aca3e7480",
         "done": false
       },
       {
-        "date": "2026-12-08",
+        "date": "2026-12-11",
         "text": "《地拉那》：通读原稿，标出要删的段落",
         "link": "https://app.notion.com/p/41de6edebc2881aebe47fc56c0a47b69",
         "done": false
       },
       {
-        "date": "2026-12-09",
+        "date": "2026-12-12",
         "text": "《地拉那》：理清顺序，列章节提纲",
         "link": "https://app.notion.com/p/41de6edebc2881aebe47fc56c0a47b69",
         "done": false
       },
       {
-        "date": "2026-12-10",
+        "date": "2026-12-13",
         "text": "《地拉那》：改写前半",
         "link": "https://app.notion.com/p/41de6edebc2881aebe47fc56c0a47b69",
         "done": false
       },
       {
-        "date": "2026-12-11",
+        "date": "2026-12-14",
         "text": "《地拉那》：改写后半",
         "link": "https://app.notion.com/p/41de6edebc2881aebe47fc56c0a47b69",
         "done": false
       },
       {
-        "date": "2026-12-12",
+        "date": "2026-12-15",
         "text": "《地拉那》：通读收尾，选配图",
         "link": "https://app.notion.com/p/41de6edebc2881aebe47fc56c0a47b69",
         "done": false
       },
       {
-        "date": "2026-12-13",
+        "date": "2026-12-16",
+        "text": "杜拉斯：通读短笔记，列提纲",
+        "link": "https://app.notion.com/p/41ee6edebc2881ff97a1c9707266197f",
+        "done": false
+      },
+      {
+        "date": "2026-12-17",
+        "text": "杜拉斯：写初稿并通读收尾，选配图",
+        "link": "https://app.notion.com/p/41ee6edebc2881ff97a1c9707266197f",
+        "done": false
+      },
+      {
+        "date": "2026-12-18",
+        "text": "普里兹伦：通读笔记和朋友圈，列提纲",
+        "link": "https://app.notion.com/p/41ee6edebc28810d92cece48f659d289",
+        "done": false
+      },
+      {
+        "date": "2026-12-19",
+        "text": "普里兹伦：写前半",
+        "link": "https://app.notion.com/p/41ee6edebc28810d92cece48f659d289",
+        "done": false
+      },
+      {
+        "date": "2026-12-20",
+        "text": "普里兹伦：写后半并通读收尾，选配图",
+        "link": "https://app.notion.com/p/41ee6edebc28810d92cece48f659d289",
+        "done": false
+      },
+      {
+        "date": "2026-12-21",
+        "text": "普里什蒂纳：通读圣诞节笔记，列提纲",
+        "link": "https://app.notion.com/p/41ee6edebc28818a9648ee2e19808c65",
+        "done": false
+      },
+      {
+        "date": "2026-12-22",
+        "text": "普里什蒂纳：写前半",
+        "link": "https://app.notion.com/p/41ee6edebc28818a9648ee2e19808c65",
+        "done": false
+      },
+      {
+        "date": "2026-12-23",
+        "text": "普里什蒂纳：写后半并通读收尾，选配图",
+        "link": "https://app.notion.com/p/41ee6edebc28818a9648ee2e19808c65",
+        "done": false
+      },
+      {
+        "date": "2026-12-24",
+        "text": "米特罗维察：通读 12-25 朋友圈，列要改的地方",
+        "link": "https://app.notion.com/p/41ee6edebc28815fb760f863f34c6284",
+        "done": false
+      },
+      {
+        "date": "2026-12-25",
+        "text": "米特罗维察：改成章节并通读收尾，选配图",
+        "link": "https://app.notion.com/p/41ee6edebc28815fb760f863f34c6284",
+        "done": false
+      },
+      {
+        "date": "2026-12-26",
+        "text": "斯科普里：回忆停留，列要点",
+        "link": "https://app.notion.com/p/41ee6edebc28812084e5f04b68df056f",
+        "done": false
+      },
+      {
+        "date": "2026-12-27",
+        "text": "斯科普里：写初稿前半",
+        "link": "https://app.notion.com/p/41ee6edebc28812084e5f04b68df056f",
+        "done": false
+      },
+      {
+        "date": "2026-12-28",
+        "text": "斯科普里：写初稿后半并通读收尾，选配图",
+        "link": "https://app.notion.com/p/41ee6edebc28812084e5f04b68df056f",
+        "done": false
+      },
+      {
+        "date": "2026-12-29",
         "text": "决定塞萨洛尼基那篇用不用（涉及父亲）",
         "link": "https://app.notion.com/p/41de6edebc2881b29a50fb9fb23a1e18",
         "done": false
       },
       {
-        "date": "2026-12-14",
+        "date": "2026-12-30",
         "text": "雅典收尾：回忆到达，列要点",
         "link": "https://app.notion.com/p/41de6edebc2881da8c74cbf739165665",
         "done": false
       },
       {
-        "date": "2026-12-15",
+        "date": "2026-12-31",
         "text": "雅典收尾：写初稿前半",
         "link": "https://app.notion.com/p/41de6edebc2881da8c74cbf739165665",
         "done": false
       },
       {
-        "date": "2026-12-16",
+        "date": "2027-01-01",
         "text": "雅典收尾：写初稿后半",
         "link": "https://app.notion.com/p/41de6edebc2881da8c74cbf739165665",
         "done": false
       },
       {
-        "date": "2026-12-17",
+        "date": "2027-01-02",
         "text": "雅典收尾：通读收尾，西巴尔干整条路线完成",
         "link": "https://app.notion.com/p/41de6edebc2881da8c74cbf739165665",
         "done": false
