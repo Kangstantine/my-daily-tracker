@@ -404,7 +404,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .wp-phase-count{font-size:11px;font-family:'DM Mono',monospace;color:var(--muted);flex-shrink:0;padding-top:2px}
 .wp-items{list-style:none;display:flex;flex-direction:column;gap:2px;margin-top:8px}
 .wp-item{display:flex;align-items:flex-start;gap:8px;padding:5px 2px;cursor:default}
-.wp-chk{width:16px;height:16px;border:1.5px solid var(--border-md);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.wp-chk{width:16px;height:16px;border:1.5px solid var(--border-md);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;background:transparent;padding:0;color:inherit;cursor:pointer;font:inherit}
+button.wp-chk:disabled{opacity:0.55;cursor:progress}
 .wp-item.done .wp-chk{background:var(--green);border-color:var(--green)}
 .wp-chk i{font-size:9px;color:#fff;display:none}
 .wp-item.done .wp-chk i{display:block}
@@ -425,6 +426,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .wp-daily .wp-item{flex-wrap:wrap}
 .wp-tick{margin-left:auto;font-size:11px;font-weight:500;color:var(--green);text-decoration:none;white-space:nowrap;flex-shrink:0}
 .wp-tick:hover{text-decoration:underline}
+.wp-sync{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:10px;font-size:11px;color:var(--muted);line-height:1.45}
+.wp-token{background:none;border:0;padding:0;color:var(--green);font:inherit;font-weight:500;cursor:pointer}
+.wp-token:hover{text-decoration:underline}
+.wp-status.is-error{color:var(--red)}
 .wp-daily .wp-items{margin-top:0}
 .wp-daily .wp-chk{width:18px;height:18px;margin-top:1px}
 .wp-daily .wp-text{font-size:14px;font-weight:500}
@@ -806,7 +811,7 @@ a.wp-task-link:hover{text-decoration:underline}
     }
   });
 </script>
-
+<script src="writing-plan-github.js"></script>
 <script>
 const KEY='daily-tracker-v3';
 const HABITS=[
@@ -2521,8 +2526,73 @@ document.getElementById('goalModalSave').addEventListener('click',()=>{
   save();renderGoals();
 });
 
-/* ══ WRITING PLAN (read-only, data/writing-plan.json) ══ */
+/* ══ WRITING PLAN (data/writing-plan.json, done flags sync to GitHub) ══ */
 function escAttr(s){return esc(s).replace(/"/g,'&quot;')}
+const WP_TOKEN_KEY='writing-plan-github-token';
+let _writingPlan=null;
+let _writingPlanStatus='';
+let _writingPlanStatusError=false;
+let _wpSaving=false;
+
+function readWritingPlanToken(){
+  try{return localStorage.getItem(WP_TOKEN_KEY)||'';}catch(e){return '';}
+}
+function writeWritingPlanToken(value){
+  try{
+    if(value) localStorage.setItem(WP_TOKEN_KEY, value);
+    else localStorage.removeItem(WP_TOKEN_KEY);
+  }catch(e){}
+}
+function ensureWritingPlanToken(){
+  const existing=readWritingPlanToken();
+  if(existing) return existing;
+  const entered=window.prompt('请输入 GitHub fine-grained token。它只保存在这台浏览器里，不会写入仓库。');
+  if(entered===null) return '';
+  const token=entered.trim();
+  if(!token) return '';
+  writeWritingPlanToken(token);
+  return token;
+}
+function setWritingPlanStatus(text, isError){
+  _writingPlanStatus=text||'';
+  _writingPlanStatusError=!!isError;
+}
+function openWritingPlanTokenSettings(){
+  const entered=window.prompt('输入新的 GitHub token。留空则清除。它只保存在这台浏览器里。', '');
+  if(entered===null) return;
+  writeWritingPlanToken(entered.trim());
+  setWritingPlanStatus(entered.trim()?'已更新令牌。':'已清除令牌。', false);
+  if(_writingPlan) renderWritingPlan(_writingPlan);
+}
+async function toggleWritingPlanTask(target, done){
+  if(_wpSaving||!_writingPlan) return;
+  const token=ensureWritingPlanToken();
+  if(!token){
+    setWritingPlanStatus('未保存：需要 GitHub 令牌。', true);
+    renderWritingPlan(_writingPlan);
+    return;
+  }
+  if(!window.WritingPlanGitHub){
+    setWritingPlanStatus('保存功能没有加载。', true);
+    renderWritingPlan(_writingPlan);
+    return;
+  }
+  _wpSaving=true;
+  setWritingPlanStatus('正在保存…', false);
+  const statusEl=document.getElementById('writingPlanStatus');
+  if(statusEl){statusEl.textContent='正在保存…';statusEl.classList.remove('is-error');}
+  try{
+    const result=await WritingPlanGitHub.saveWritingPlanDone({token, target, done});
+    _writingPlan=result.plan;
+    setWritingPlanStatus('已保存到 GitHub。页面已更新；GitHub Pages 可能要 1–2 分钟才和仓库一致。', false);
+    renderWritingPlan(_writingPlan);
+  }catch(e){
+    setWritingPlanStatus(e&&e.message?e.message:'保存失败。', true);
+    renderWritingPlan(_writingPlan);
+  }finally{
+    _wpSaving=false;
+  }
+}
 
 async function loadWritingPlan(){
   const card=document.getElementById('writingPlanCard');
@@ -2532,6 +2602,7 @@ async function loadWritingPlan(){
     if(!r.ok) throw new Error('not found');
     const plan=await r.json();
     if(!plan||typeof plan!=='object'||!Array.isArray(plan.phases)) throw new Error('bad shape');
+    _writingPlan=plan;
     renderWritingPlan(plan);
   }catch(e){
     card.hidden=false;
@@ -2565,7 +2636,7 @@ function rollWritingPlanTasks(tasks, today){
   const undone=tasks.filter(t=>!t.done);
   let shift=0;
   if(undone.length&&undone[0].date<today) shift=planDaysBetween(undone[0].date, today);
-  const rolled=tasks.map(t=>({date:t.done?t.date:addDays(t.date,shift), text:t.text, done:t.done, link:t.link}));
+  const rolled=tasks.map(t=>({date:t.done?t.date:addDays(t.date,shift), sourceDate:t.date, text:t.text, done:t.done, link:t.link}));
   let end='';
   rolled.forEach(t=>{if(t.date>end) end=t.date;});
   return {tasks:rolled, shift, end};
@@ -2608,7 +2679,17 @@ function appendPlanTask(ul, task, opts){
   const label=esc(task.text);
   const body=href?`<a class="wp-task-link" href="${escAttr(href)}" target="_blank" rel="noopener noreferrer">${label}<span class="wp-task-ext" aria-hidden="true">↗</span></a>`:label;
   const tick=opts&&opts.tickUrl?`<a class="wp-tick" href="${escAttr(opts.tickUrl)}" target="_blank" rel="noopener noreferrer">去 GitHub 打钩</a>`:'';
-  li.innerHTML=`<span class="wp-chk" aria-hidden="true"><i class="ti ti-check"></i></span>${date}<span class="wp-text">${body}</span>${tick}`;
+  li.innerHTML=`<button type="button" class="wp-chk" role="checkbox" aria-checked="${task.done?'true':'false'}" aria-label="${escAttr(task.text)}"><i class="ti ti-check"></i></button>${date}<span class="wp-text">${body}</span>${tick}`;
+  const btn=li.querySelector('.wp-chk');
+  if(opts&&opts.target){
+    btn.addEventListener('click',()=>{
+      if(_wpSaving) return;
+      btn.disabled=true;
+      li.classList.toggle('done', !task.done);
+      btn.setAttribute('aria-checked', task.done?'false':'true');
+      toggleWritingPlanTask(opts.target, !task.done);
+    });
+  }
   ul.appendChild(li);
 }
 function buildWritingPlanDaily(plan, day){
@@ -2650,7 +2731,10 @@ function buildWritingPlanDaily(plan, day){
     ${shift?`<div class="wp-roll">已顺延 ${shift} 天，第一步至 ${esc(rolled.end)}</div>`:''}
     ${daily.note?`<div class="wp-daily-note">${esc(daily.note)}</div>`:''}`;
   const focusList=sec.querySelector('.wp-daily-items');
-  if(focusList) focus.forEach((t,i)=>appendPlanTask(focusList, t, {tickUrl:i===0?WP_GITHUB_EDIT:''}));
+  if(focusList) focus.forEach((t,i)=>appendPlanTask(focusList, t, {
+    tickUrl:i===0?WP_GITHUB_EDIT:'',
+    target:{type:'daily', date:t.sourceDate||t.date, text:t.text}
+  }));
   block.appendChild(sec);
 
   const range=planWeekRange(day);
@@ -2667,7 +2751,11 @@ function buildWritingPlanDaily(plan, day){
       </summary>
       <ul class="wp-items wp-week-items"></ul>`;
     const list=det.querySelector('ul');
-    week.forEach(t=>appendPlanTask(list, t, {showDate:true, today:t.date===day}));
+    week.forEach(t=>appendPlanTask(list, t, {
+      showDate:true,
+      today:t.date===day,
+      target:{type:'daily', date:t.sourceDate||t.date, text:t.text}
+    }));
     block.appendChild(det);
   }
   return {block, shift};
@@ -2676,6 +2764,7 @@ function buildWritingPlanDaily(plan, day){
 function renderWritingPlan(plan, asOf){
   const card=document.getElementById('writingPlanCard');
   if(!card) return;
+  if(plan) _writingPlan=plan;
   const day=typeof asOf==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(asOf)?asOf:planToday();
   const phases=plan.phases;
   let doneAll=0,totalAll=0;
@@ -2694,7 +2783,7 @@ function renderWritingPlan(plan, asOf){
       <div class="wp-head-main">
         <div class="wp-title-row">
           <div class="wp-title">${esc(title)}</div>
-          <span class="wp-badge">只读</span>
+          <span class="wp-badge">可勾选</span>
         </div>
         <div class="wp-meta">
           ${updated?`<span class="wp-updated">更新于 ${esc(updated)}</span>`:''}
@@ -2705,7 +2794,14 @@ function renderWritingPlan(plan, asOf){
       <div class="wp-count">${doneAll}/${totalAll}</div>
     </div>
     <div class="wp-track" aria-hidden="true"><div class="wp-fill" style="width:${pct}%"></div></div>
+    <div class="wp-sync">
+      <button type="button" class="wp-token" id="wpTokenBtn">令牌设置</button>
+      <span>勾选会写入 GitHub，页面马上更新。GitHub Pages 可能要 1–2 分钟才和仓库一致。</span>
+      <span id="writingPlanStatus" class="wp-status${_writingPlanStatusError?' is-error':''}">${esc(_writingPlanStatus)}</span>
+    </div>
     <div class="wp-phases"></div>`;
+  const tokenBtn=card.querySelector('#wpTokenBtn');
+  if(tokenBtn) tokenBtn.addEventListener('click', openWritingPlanTokenSettings);
   const built=buildWritingPlanDaily(plan, day);
   const shift=built?built.shift:0;
   if(built) card.insertBefore(built.block, card.firstChild);
@@ -2734,12 +2830,11 @@ function renderWritingPlan(plan, asOf){
       <div class="wp-track wp-track-sm" aria-hidden="true"><div class="wp-fill" style="width:${phasePct}%"></div></div>
       <ul class="wp-items"></ul>`;
     const ul=sec.querySelector('.wp-items');
-    items.forEach(it=>{
+    items.forEach((it,ii)=>{
       const text=it&&typeof it.text==='string'?it.text:'';
-      const li=document.createElement('li');
-      li.className='wp-item'+(it&&it.done?' done':'');
-      li.innerHTML=`<span class="wp-chk" aria-hidden="true"><i class="ti ti-check"></i></span><span class="wp-text">${esc(text)}</span>`;
-      ul.appendChild(li);
+      appendPlanTask(ul, {text, done:!!(it&&it.done)}, {
+        target:{type:'phase', phaseIndex:pi, itemIndex:ii, text}
+      });
     });
     wrap.appendChild(sec);
   });
