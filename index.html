@@ -421,6 +421,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .wp-daily-empty{font-size:12px;color:var(--muted);margin-bottom:4px}
 .wp-daily-when{font-size:12px;font-weight:600;margin-bottom:6px}
 .wp-daily-note{margin-top:8px;font-size:11px;color:var(--muted);line-height:1.45}
+.wp-roll{margin-top:8px;font-size:11px;color:var(--muted);line-height:1.45}
+.wp-daily .wp-item{flex-wrap:wrap}
+.wp-tick{margin-left:auto;font-size:11px;font-weight:500;color:var(--green);text-decoration:none;white-space:nowrap;flex-shrink:0}
+.wp-tick:hover{text-decoration:underline}
 .wp-daily .wp-items{margin-top:0}
 .wp-daily .wp-chk{width:18px;height:18px;margin-top:1px}
 .wp-daily .wp-text{font-size:14px;font-weight:500}
@@ -2543,6 +2547,30 @@ function planDayShort(s){
   const d=parseD(s);
   return (d.getMonth()+1)+'月'+d.getDate()+'日';
 }
+function planToday(){
+  try{
+    const parts=new Intl.DateTimeFormat('en-US',{timeZone:'Europe/Amsterdam',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());
+    const get=t=>parts.find(p=>p.type===t).value;
+    const s=get('year')+'-'+get('month')+'-'+get('day');
+    if(/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  }catch(e){}
+  return todayStr();
+}
+function planDaysBetween(a,b){
+  const [ay,am,ad]=a.split('-').map(Number);
+  const [by,bm,bd]=b.split('-').map(Number);
+  return Math.round((Date.UTC(by,bm-1,bd)-Date.UTC(ay,am-1,ad))/864e5);
+}
+function rollWritingPlanTasks(tasks, today){
+  const undone=tasks.filter(t=>!t.done);
+  let shift=0;
+  if(undone.length&&undone[0].date<today) shift=planDaysBetween(undone[0].date, today);
+  const rolled=tasks.map(t=>({date:t.done?t.date:addDays(t.date,shift), text:t.text, done:t.done, link:t.link}));
+  let end='';
+  rolled.forEach(t=>{if(t.date>end) end=t.date;});
+  return {tasks:rolled, shift, end};
+}
+const WP_GITHUB_EDIT='https://github.com/Kangstantine/my-daily-tracker/edit/main/data/writing-plan.json';
 function planWeekRange(day){
   const t=parseD(day);
   const dow=t.getDay()===0?6:t.getDay()-1;
@@ -2579,23 +2607,28 @@ function appendPlanTask(ul, task, opts){
   const href=planTaskHref(task);
   const label=esc(task.text);
   const body=href?`<a class="wp-task-link" href="${escAttr(href)}" target="_blank" rel="noopener noreferrer">${label}<span class="wp-task-ext" aria-hidden="true">↗</span></a>`:label;
-  li.innerHTML=`<span class="wp-chk" aria-hidden="true"><i class="ti ti-check"></i></span>${date}<span class="wp-text">${body}</span>`;
+  const tick=opts&&opts.tickUrl?`<a class="wp-tick" href="${escAttr(opts.tickUrl)}" target="_blank" rel="noopener noreferrer">去 GitHub 打钩</a>`:'';
+  li.innerHTML=`<span class="wp-chk" aria-hidden="true"><i class="ti ti-check"></i></span>${date}<span class="wp-text">${body}</span>${tick}`;
   ul.appendChild(li);
 }
 function buildWritingPlanDaily(plan, day){
   const daily=writingPlanDaily(plan);
   if(!daily) return null;
+  const rolled=rollWritingPlanTasks(daily.tasks, day);
+  const tasks=[...rolled.tasks].sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
+  const shift=rolled.shift;
   const block=document.createElement('div');
   block.className='wp-daily-block';
-  const todays=daily.tasks.filter(t=>t.date===day);
-  let focus=todays, when='', empty='';
-  if(!todays.length){
-    const next=daily.tasks.find(t=>t.date>day);
+  const onDay=tasks.filter(t=>t.date===day);
+  const undoneOnDay=onDay.filter(t=>!t.done);
+  let focus=undoneOnDay.length?undoneOnDay:onDay, when='', empty='';
+  if(!focus.length){
+    const next=tasks.find(t=>t.date>day&&!t.done)||tasks.find(t=>t.date>day);
     if(next){
-      focus=daily.tasks.filter(t=>t.date===next.date);
+      focus=tasks.filter(t=>t.date===next.date&&t.done===next.done);
       when='下一项 · '+planDayLabel(next.date);
       empty='今天没有安排';
-    }else if(daily.tasks.length){
+    }else if(tasks.length){
       empty='没有更晚的每日任务';
     }else{
       empty='还没有每日任务';
@@ -2614,24 +2647,14 @@ function buildWritingPlanDaily(plan, day){
     ${empty?`<div class="wp-daily-empty">${esc(empty)}</div>`:''}
     ${when?`<div class="wp-daily-when">${esc(when)}</div>`:''}
     ${focus.length?'<ul class="wp-items wp-daily-items"></ul>':''}
+    ${shift?`<div class="wp-roll">已顺延 ${shift} 天，第一步至 ${esc(rolled.end)}</div>`:''}
     ${daily.note?`<div class="wp-daily-note">${esc(daily.note)}</div>`:''}`;
   const focusList=sec.querySelector('.wp-daily-items');
-  if(focusList) focus.forEach(t=>appendPlanTask(focusList, t));
+  if(focusList) focus.forEach((t,i)=>appendPlanTask(focusList, t, {tickUrl:i===0?WP_GITHUB_EDIT:''}));
   block.appendChild(sec);
 
-  const overdue=daily.tasks.filter(t=>t.date<day&&!t.done);
-  if(overdue.length){
-    const od=document.createElement('section');
-    od.className='wp-overdue';
-    od.setAttribute('aria-label','已过期未完成');
-    od.innerHTML=`<div class="wp-overdue-label">已过期未完成 · ${overdue.length}</div><ul class="wp-items"></ul>`;
-    const list=od.querySelector('ul');
-    overdue.forEach(t=>appendPlanTask(list, t, {showDate:true}));
-    block.appendChild(od);
-  }
-
   const range=planWeekRange(day);
-  const week=daily.tasks.filter(t=>t.date>=range.start&&t.date<=range.end);
+  const week=tasks.filter(t=>t.date>=range.start&&t.date<=range.end);
   if(week.length){
     const done=week.filter(t=>t.done).length;
     const det=document.createElement('details');
@@ -2647,13 +2670,13 @@ function buildWritingPlanDaily(plan, day){
     week.forEach(t=>appendPlanTask(list, t, {showDate:true, today:t.date===day}));
     block.appendChild(det);
   }
-  return block;
+  return {block, shift};
 }
 
 function renderWritingPlan(plan, asOf){
   const card=document.getElementById('writingPlanCard');
   if(!card) return;
-  const day=typeof asOf==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(asOf)?asOf:todayStr();
+  const day=typeof asOf==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(asOf)?asOf:planToday();
   const phases=plan.phases;
   let doneAll=0,totalAll=0;
   phases.forEach(p=>{
@@ -2683,19 +2706,21 @@ function renderWritingPlan(plan, asOf){
     </div>
     <div class="wp-track" aria-hidden="true"><div class="wp-fill" style="width:${pct}%"></div></div>
     <div class="wp-phases"></div>`;
-  const dailyEl=buildWritingPlanDaily(plan, day);
-  if(dailyEl) card.insertBefore(dailyEl, card.firstChild);
+  const built=buildWritingPlanDaily(plan, day);
+  const shift=built?built.shift:0;
+  if(built) card.insertBefore(built.block, card.firstChild);
   const wrap=card.querySelector('.wp-phases');
   if(!phases.length){
     wrap.innerHTML='<div class="wp-missing">还没有阶段</div>';
     return;
   }
-  phases.forEach(p=>{
+  phases.forEach((p,pi)=>{
     const items=Array.isArray(p&&p.items)?p.items:[];
     const done=items.filter(it=>it&&it.done).length;
     const phasePct=items.length?Math.round(done/items.length*100):0;
     const name=p&&typeof p.name==='string'?p.name:'';
-    const span=p&&typeof p.window==='string'?p.window:'';
+    let span=p&&typeof p.window==='string'?p.window:'';
+    if(shift>0&&pi>0&&span) span+='（顺延 '+shift+' 天）';
     const sec=document.createElement('section');
     sec.className='wp-phase';
     sec.innerHTML=`
